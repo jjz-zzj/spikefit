@@ -258,10 +258,23 @@ const app = createApp({
       return planDateMode.value === 'today' ? todayDate.value : tomorrowDate.value;
     });
 
-    // 用户基础资料
+    // 用户基础资料与体能参数 (按用户实际设定：身高 174cm，体重 76kg)
     const userProfile = ref({
-      weight: 75,
+      gender: 'male',
+      age: 25,
+      height: 174,
+      weight: 76,
       weeklyVolleyballTarget: 5
+    });
+
+    // 基础代谢率 (BMR) - 运动生理学黄金 Mifflin-St Jeor 算法
+    const bmrCalories = computed(() => {
+      return CalorieCalculator.calculateBMR(
+        userProfile.value.gender,
+        userProfile.value.weight,
+        userProfile.value.height,
+        userProfile.value.age
+      );
     });
 
     // 身体疲劳监控 (1-5 星)
@@ -272,6 +285,47 @@ const app = createApp({
 
     // 跨日期多计划容器字典 { 'YYYY-MM-DD': { volleyball, treadmill, exercises } }
     const dailyPlans = ref({});
+
+    // 跨日期多餐食容器字典 { 'YYYY-MM-DD': [ { id, time, dishName, calories, carbs, protein, fat, fiber, advice } ] }
+    const dailyMeals = ref({
+      '2026-11-23': [
+        {
+          id: 'meal_20261123_1',
+          time: '12:30',
+          dishName: '熟瘦牛肉配优质米饭与时蔬',
+          calories: 650,
+          carbs: 80,
+          protein: 45,
+          fat: 12,
+          fiber: 4,
+          advice: '练背日核心正餐：高蛋白与高复合碳水，迅速补充肌糖原，促进背阔肌超量恢复'
+        },
+        {
+          id: 'meal_20261123_2',
+          time: '21:00',
+          dishName: '乳清蛋白粉冲水',
+          calories: 140,
+          carbs: 3,
+          protein: 26,
+          fat: 2,
+          fiber: 0,
+          advice: '力量训练后半小时内快速吸收，提升肌肉蛋白质合成效率'
+        }
+      ],
+      '2026-11-24': [
+        {
+          id: 'meal_20261124_1',
+          time: '08:00',
+          dishName: '燕麦片水牛奶香蕉坚果力量能量碗',
+          calories: 548,
+          carbs: 72,
+          protein: 18.5,
+          fat: 22,
+          fiber: 7.2,
+          advice: '排球实战前最佳运动早餐：水牛奶优质慢消化酪蛋白，香蕉高钾防小腿抽筋，燕麦缓释充盈肌糖原，坚果提供持久稳定供能'
+        }
+      ]
+    });
 
     // 当前视图绑定的活动计划表单数据
     const todayVolleyball = ref({
@@ -420,16 +474,27 @@ const app = createApp({
       };
     });
 
-    // 能量天平净收支 (Net Energy Balance)
+    // 每日能量天平与热量缺口核心算法：
+    // 用户指定公式：基础代谢 (BMR) + 当日运动消耗 - 饮食摄入 = 热量缺口
+    const dailyEnergyDeficit = computed(() => {
+      return CalorieCalculator.calculateCalorieDeficit(
+        bmrCalories.value,
+        todayTotalCalories.value,
+        todayNutritionTotal.value.calories
+      );
+    });
+
+    // 兼容原 netEnergyBalance 绑定
     const netEnergyBalance = computed(() => {
-      const intake = todayNutritionTotal.value.calories;
-      const burn = todayTotalCalories.value;
-      const balance = intake - burn;
+      const def = dailyEnergyDeficit.value;
       return {
-        intake,
-        burn,
-        balance,
-        statusText: balance > 0 ? `热量盈余 +${balance} kcal (肌纤维合成与超量恢复)` : (balance < 0 ? `热量赤字 ${balance} kcal (体脂削减塑形)` : '能量完美平衡')
+        intake: def.intakeCalories,
+        burn: def.exerciseBurn,
+        bmr: def.bmr,
+        tdee: def.tdee,
+        balance: def.deficit,
+        statusText: def.statusText,
+        summary: def.summary
       };
     });
 
@@ -485,14 +550,279 @@ const app = createApp({
       todayVolleyball.value = JSON.parse(JSON.stringify(targetPlan.volleyball || { enabled: false }));
       todayTreadmill.value = JSON.parse(JSON.stringify(targetPlan.treadmill || { enabled: false }));
       todayExercises.value = JSON.parse(JSON.stringify(targetPlan.exercises || []));
+      loadMealsFromDict(dateStr);
+    };
+
+    const syncMealsToDict = () => {
+      dailyMeals.value[activePlanDate.value] = JSON.parse(JSON.stringify(todayMeals.value));
+    };
+
+    const loadMealsFromDict = (dateStr) => {
+      if (dailyMeals.value[dateStr]) {
+        todayMeals.value = JSON.parse(JSON.stringify(dailyMeals.value[dateStr]));
+      } else {
+        todayMeals.value = [];
+        dailyMeals.value[dateStr] = [];
+      }
     };
 
     const switchPlanDate = (mode) => {
       syncCurrentFormToDict();
+      syncMealsToDict();
       planDateMode.value = mode;
       loadPlanFromDict(activePlanDate.value);
       saveState();
       showToast(mode === 'tomorrow' ? '已进入【明日预排】模式' : '已返回【今日打卡】模式');
+    };
+
+    // ==================== 训练与饮食综合日历引擎 ====================
+    const calendarYear = ref(now.getFullYear());
+    const calendarMonth = ref(now.getMonth());
+    const selectedCalendarDate = ref(todayDate.value);
+
+    const calendarTitle = computed(() => {
+      return `${calendarYear.value}年 ${calendarMonth.value + 1}月`;
+    });
+
+    const prevMonth = () => {
+      if (calendarMonth.value === 0) {
+        calendarMonth.value = 11;
+        calendarYear.value -= 1;
+      } else {
+        calendarMonth.value -= 1;
+      }
+    };
+
+    const nextMonth = () => {
+      if (calendarMonth.value === 11) {
+        calendarMonth.value = 0;
+        calendarYear.value += 1;
+      } else {
+        calendarMonth.value += 1;
+      }
+    };
+
+    const goToTodayCalendar = () => {
+      const d = new Date();
+      calendarYear.value = d.getFullYear();
+      calendarMonth.value = d.getMonth();
+      selectedCalendarDate.value = formatDate(d);
+    };
+
+    const selectCalendarDate = (dateStr) => {
+      selectedCalendarDate.value = dateStr;
+    };
+
+    // 辅助：获取任意一天的训练数据（从 dailyPlans 或 historyLogs 或当前表单）
+    const getDayWorkoutData = (dateStr) => {
+      if (dateStr === activePlanDate.value) {
+        return {
+          volleyball: todayVolleyball.value.enabled ? { ...todayVolleyball.value } : null,
+          treadmill: todayTreadmill.value.enabled ? { ...todayTreadmill.value } : null,
+          exercises: [...todayExercises.value],
+          totalCalories: todayTotalCalories.value,
+          totalVolume: strengthStats.value.volume
+        };
+      }
+      const hist = historyLogs.value.find(l => l.date === dateStr);
+      if (hist) {
+        return {
+          volleyball: hist.volleyball,
+          treadmill: hist.treadmill,
+          exercises: hist.exercises || [],
+          totalCalories: hist.totalCalories || 0,
+          totalVolume: hist.totalVolume || 0
+        };
+      }
+      const plan = dailyPlans.value[dateStr];
+      if (plan) {
+        let cal = 0;
+        let vol = 0;
+        if (plan.volleyball && plan.volleyball.enabled) {
+          cal += CalorieCalculator.calculateVolleyball(userProfile.value.weight, plan.volleyball.intensity, plan.volleyball.duration).calories;
+        }
+        if (plan.treadmill && plan.treadmill.enabled) {
+          cal += CalorieCalculator.calculateInclineTreadmill(userProfile.value.weight, plan.treadmill.speed, plan.treadmill.incline, plan.treadmill.duration).calories;
+        }
+        (plan.exercises || []).forEach(ex => {
+          const res = CalorieCalculator.calculateStrengthExercise(userProfile.value.weight, ex, ex.sets || []);
+          cal += res.calories;
+          vol += res.totalVolume;
+        });
+        return {
+          volleyball: (plan.volleyball && plan.volleyball.enabled) ? plan.volleyball : null,
+          treadmill: (plan.treadmill && plan.treadmill.enabled) ? plan.treadmill : null,
+          exercises: plan.exercises || [],
+          totalCalories: cal,
+          totalVolume: vol
+        };
+      }
+      return {
+        volleyball: null,
+        treadmill: null,
+        exercises: [],
+        totalCalories: 0,
+        totalVolume: 0
+      };
+    };
+
+    // 辅助：获取任意一天的餐食数据
+    const getDayMealsData = (dateStr) => {
+      if (dateStr === activePlanDate.value && todayMeals.value && todayMeals.value.length) {
+        return todayMeals.value;
+      }
+      return dailyMeals.value[dateStr] || [];
+    };
+
+    // 日历网格计算属性 (周一起始)
+    const calendarGrid = computed(() => {
+      const y = calendarYear.value;
+      const m = calendarMonth.value;
+
+      const firstDayOfMonth = new Date(y, m, 1);
+      const lastDayOfMonth = new Date(y, m + 1, 0);
+
+      const daysInMonth = lastDayOfMonth.getDate();
+      const startDayOfWeek = (firstDayOfMonth.getDay() + 6) % 7; // 0: 周一, ... 6: 周日
+
+      const bmr = bmrCalories.value;
+      const grid = [];
+
+      // 上月占位天数
+      const prevMonthLastDay = new Date(y, m, 0).getDate();
+      for (let i = startDayOfWeek - 1; i >= 0; i--) {
+        const dayNum = prevMonthLastDay - i;
+        const prevDate = new Date(y, m - 1, dayNum);
+        const dateStr = formatDate(prevDate);
+        grid.push({
+          dateStr,
+          dayNum,
+          isCurrentMonth: false,
+          isToday: dateStr === todayDate.value,
+          isSelected: dateStr === selectedCalendarDate.value,
+          workout: null,
+          meals: [],
+          burn: 0,
+          intake: 0,
+          deficitStats: null
+        });
+      }
+
+      // 当月真实天数
+      for (let d = 1; d <= daysInMonth; d++) {
+        const dateObj = new Date(y, m, d);
+        const dateStr = formatDate(dateObj);
+        const workout = getDayWorkoutData(dateStr);
+        const meals = getDayMealsData(dateStr);
+
+        let intake = 0;
+        meals.forEach(meal => {
+          intake += Number(meal.calories) || 0;
+        });
+
+        const hasData = (workout.totalCalories > 0 || workout.exercises.length > 0 || (workout.volleyball && workout.volleyball.enabled) || meals.length > 0);
+        const deficitStats = hasData ? CalorieCalculator.calculateCalorieDeficit(bmr, workout.totalCalories, intake) : null;
+
+        grid.push({
+          dateStr,
+          dayNum: d,
+          isCurrentMonth: true,
+          isToday: dateStr === todayDate.value,
+          isSelected: dateStr === selectedCalendarDate.value,
+          workout,
+          meals,
+          burn: workout.totalCalories,
+          intake,
+          hasData,
+          deficitStats
+        });
+      }
+
+      // 下月填充至 7 的倍数 (保持整齐矩形网格)
+      const remaining = (7 - (grid.length % 7)) % 7;
+      for (let j = 1; j <= remaining; j++) {
+        const nextDate = new Date(y, m + 1, j);
+        const dateStr = formatDate(nextDate);
+        grid.push({
+          dateStr,
+          dayNum: j,
+          isCurrentMonth: false,
+          isToday: dateStr === todayDate.value,
+          isSelected: dateStr === selectedCalendarDate.value,
+          workout: null,
+          meals: [],
+          burn: 0,
+          intake: 0,
+          deficitStats: null
+        });
+      }
+
+      return grid;
+    });
+
+    // 选中日期的综合全景档案
+    const selectedDayDetail = computed(() => {
+      const dateStr = selectedCalendarDate.value;
+      const workout = getDayWorkoutData(dateStr);
+      const meals = getDayMealsData(dateStr);
+
+      const bmr = bmrCalories.value;
+
+      let intake = 0;
+      let carbs = 0;
+      let protein = 0;
+      let fat = 0;
+      let fiber = 0;
+      meals.forEach(m => {
+        intake += Number(m.calories) || 0;
+        carbs += Number(m.carbs) || 0;
+        protein += Number(m.protein) || 0;
+        fat += Number(m.fat) || 0;
+        fiber += Number(m.fiber) || 0;
+      });
+
+      const deficitStats = CalorieCalculator.calculateCalorieDeficit(bmr, workout.totalCalories, intake);
+
+      return {
+        dateStr,
+        workout,
+        meals,
+        bmr,
+        exerciseBurn: workout.totalCalories,
+        totalVolume: workout.totalVolume,
+        nutritionTotal: {
+          calories: Math.round(intake),
+          carbs: Math.round(carbs),
+          protein: Math.round(protein),
+          fat: Math.round(fat),
+          fiber: Math.round(fiber)
+        },
+        deficitStats
+      };
+    });
+
+    const jumpToPlanFromCalendar = (dateStr) => {
+      syncCurrentFormToDict();
+      syncMealsToDict();
+      if (dateStr === todayDate.value) {
+        planDateMode.value = 'today';
+      } else if (dateStr === tomorrowDate.value) {
+        planDateMode.value = 'tomorrow';
+      } else {
+        planDateMode.value = 'today';
+      }
+      loadPlanFromDict(dateStr);
+      loadMealsFromDict(dateStr);
+      activeTab.value = 'today';
+      showToast(`已切换至【${dateStr}】训练计划`);
+    };
+
+    const jumpToNutritionFromCalendar = (dateStr) => {
+      syncCurrentFormToDict();
+      syncMealsToDict();
+      loadMealsFromDict(dateStr);
+      activeTab.value = 'nutrition';
+      showToast(`已切换至【${dateStr}】饮食记录`);
     };
 
     // ================= AI 饮食与营养相机 =================
@@ -551,12 +881,14 @@ const app = createApp({
         advice: result.volleyballAdvice || ''
       };
       todayMeals.value.unshift(mealEntry);
+      syncMealsToDict();
       saveState();
       showToast(`已将【${mealEntry.dishName}】记入今日摄入！`);
     };
 
     const removeMeal = (index) => {
       todayMeals.value.splice(index, 1);
+      syncMealsToDict();
       saveState();
       showToast('已移除餐食');
     };
@@ -743,12 +1075,14 @@ const app = createApp({
     // ================= 数据持久化与云同步 =================
     const saveState = () => {
       syncCurrentFormToDict();
+      syncMealsToDict();
       const stateToSave = {
         userProfile: userProfile.value,
         fatigue: fatigue.value,
         todayDate: todayDate.value,
         planDateMode: planDateMode.value,
         dailyPlans: dailyPlans.value,
+        dailyMeals: dailyMeals.value,
         todayVolleyball: todayVolleyball.value,
         todayTreadmill: todayTreadmill.value,
         todayExercises: todayExercises.value,
@@ -772,6 +1106,9 @@ const app = createApp({
         if (localData.dailyPlans) {
           dailyPlans.value = localData.dailyPlans;
         }
+        if (localData.dailyMeals) {
+          dailyMeals.value = localData.dailyMeals;
+        }
         if (localData.todayMeals) {
           todayMeals.value = localData.todayMeals;
         }
@@ -794,19 +1131,22 @@ const app = createApp({
       // 默认模式锁定为【今日打卡】
       planDateMode.value = 'today';
 
-      // 载入今日打卡计划
+      // 载入今日打卡计划与今日餐食
       loadPlanFromDict(todayDate.value);
+      loadMealsFromDict(todayDate.value);
     };
 
     const pushSync = async () => {
       syncStatus.value = { loading: true, message: '正在同步上传至云端...', type: 'info' };
       syncCurrentFormToDict();
+      syncMealsToDict();
       const currentData = {
         userProfile: userProfile.value,
         fatigue: fatigue.value,
         todayDate: todayDate.value,
         planDateMode: planDateMode.value,
         dailyPlans: dailyPlans.value,
+        dailyMeals: dailyMeals.value,
         todayVolleyball: todayVolleyball.value,
         todayTreadmill: todayTreadmill.value,
         todayExercises: todayExercises.value,
@@ -834,6 +1174,7 @@ const app = createApp({
         if (cloudData.fatigue) fatigue.value = cloudData.fatigue;
         if (cloudData.historyLogs) historyLogs.value = cloudData.historyLogs;
         if (cloudData.dailyPlans) dailyPlans.value = cloudData.dailyPlans;
+        if (cloudData.dailyMeals) dailyMeals.value = cloudData.dailyMeals;
         if (cloudData.todayMeals) todayMeals.value = cloudData.todayMeals;
         if (cloudData.geminiApiKey) geminiApiKey.value = cloudData.geminiApiKey;
 
@@ -942,6 +1283,21 @@ const app = createApp({
       todayMeals,
       todayNutritionTotal,
       netEnergyBalance,
+      bmrCalories,
+      dailyEnergyDeficit,
+      dailyMeals,
+      calendarYear,
+      calendarMonth,
+      calendarTitle,
+      selectedCalendarDate,
+      selectedDayDetail,
+      calendarGrid,
+      prevMonth,
+      nextMonth,
+      goToTodayCalendar,
+      selectCalendarDate,
+      jumpToPlanFromCalendar,
+      jumpToNutritionFromCalendar,
       onMealImageSelected,
       clearMealImage,
       triggerAnalyzeMeal,

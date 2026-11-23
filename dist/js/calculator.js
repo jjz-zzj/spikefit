@@ -93,6 +93,70 @@ const CalorieCalculator = {
   },
 
   /**
+   * 基础代谢率 (BMR) 计算 - Mifflin-St Jeor 运动生理黄金方程
+   * 男：10 * 体重(kg) + 6.25 * 身高(cm) - 5 * 年龄 + 5
+   * 女：10 * 体重(kg) + 6.25 * 身高(cm) - 5 * 年龄 - 161
+   * @param {string} gender - 'male' | 'female'
+   * @param {number} weight - 体重 (kg)，默认 76
+   * @param {number} height - 身高 (cm)，默认 174
+   * @param {number} age - 年龄 (岁)，默认 25
+   * @returns {number} 基础代谢 (kcal)
+   */
+  calculateBMR(gender = 'male', weight = 76, height = 174, age = 25) {
+    const w = Number(weight) || 76;
+    const h = Number(height) || 174;
+    const a = Number(age) || 25;
+    let bmr = (10 * w) + (6.25 * h) - (5 * a);
+    if (gender === 'female') {
+      bmr -= 161;
+    } else {
+      bmr += 5;
+    }
+    return Math.round(bmr);
+  },
+
+  /**
+   * 计算每日总能耗支出 (TDEE) 与热量缺口 / 盈余
+   * 公式：热量缺口 = (基础代谢 BMR + 当日运动消耗) - 当日饮食摄入
+   * @param {number} bmr - 基础代谢
+   * @param {number} exerciseBurn - 当日运动消耗 (排球 + 爬坡机 + 力量)
+   * @param {number} intakeCalories - 当日饮食总摄入
+   * @returns {object}
+   */
+  calculateCalorieDeficit(bmr, exerciseBurn, intakeCalories) {
+    const bmrVal = Math.round(Number(bmr) || 0);
+    const burnVal = Math.round(Number(exerciseBurn) || 0);
+    const intakeVal = Math.round(Number(intakeCalories) || 0);
+    const tdee = bmrVal + burnVal; // 当日总消耗
+    const deficit = tdee - intakeVal; // 热量缺口: 总支出减摄入
+
+    let status = 'balanced';
+    let statusText = '能量收支平衡';
+    let summary = '今日摄入与总消耗完全平衡！';
+
+    if (deficit > 0) {
+      status = 'deficit';
+      statusText = `热量缺口 +${deficit} kcal`;
+      summary = `今日总消耗高于饮食摄入 ${deficit} kcal，正处于高效燃脂塑形与脂肪分解状态！`;
+    } else if (deficit < 0) {
+      status = 'surplus';
+      statusText = `热量盈余 ${Math.abs(deficit)} kcal`;
+      summary = `今日饮食摄入高于总消耗 ${Math.abs(deficit)} kcal，适合大负荷训练后超量恢复与肌纤维生长！`;
+    }
+
+    return {
+      bmr: bmrVal,
+      exerciseBurn: burnVal,
+      tdee,
+      intakeCalories: intakeVal,
+      deficit,
+      status,
+      statusText,
+      summary
+    };
+  },
+
+  /**
    * 估算消耗卡路里对应的食物等价值（更直观的成就反馈）
    * @param {number} totalCalories
    * @returns {string}

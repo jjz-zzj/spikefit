@@ -62,12 +62,13 @@
 
       <!-- 电脑端顶部快捷菜单 -->
       <nav class="hidden md:flex items-center space-x-1 bg-slate-900/80 p-1.5 rounded-xl border border-slate-800">
-        <button @click="activeTab = 'today'" :class="activeTab === 'today' ? 'bg-brand-volt text-black font-bold' : 'text-slate-300 hover:text-white'" class="px-3.5 py-1.5 rounded-lg text-sm transition">📋 今日计划</button>
-        <button @click="activeTab = 'recommend'" :class="activeTab === 'recommend' ? 'bg-brand-orange text-black font-bold' : 'text-slate-300 hover:text-white'" class="px-3.5 py-1.5 rounded-lg text-sm transition">💡 智能推荐</button>
-        <button @click="activeTab = 'nutrition'" :class="activeTab === 'nutrition' ? 'bg-amber-400 text-black font-bold' : 'text-slate-300 hover:text-white'" class="px-3.5 py-1.5 rounded-lg text-sm transition">🥗 AI 营养</button>
-        <button @click="activeTab = 'library'" :class="activeTab === 'library' ? 'bg-brand-blue text-black font-bold' : 'text-slate-300 hover:text-white'" class="px-3.5 py-1.5 rounded-lg text-sm transition">📚 动作库</button>
-        <button @click="activeTab = 'history'" :class="activeTab === 'history' ? 'bg-slate-700 text-white font-bold' : 'text-slate-300 hover:text-white'" class="px-3.5 py-1.5 rounded-lg text-sm transition">📈 历史能耗</button>
-        <button @click="activeTab = 'sync'" :class="activeTab === 'sync' ? 'bg-slate-700 text-white font-bold' : 'text-slate-300 hover:text-white'" class="px-3.5 py-1.5 rounded-lg text-sm transition">⚙️ 同步与设置</button>
+        <button @click="activeTab = 'today'" :class="activeTab === 'today' ? 'bg-brand-volt text-black font-bold' : 'text-slate-300 hover:text-white'" class="px-3 py-1.5 rounded-lg text-sm transition">📋 今日计划</button>
+        <button @click="activeTab = 'calendar'" :class="activeTab === 'calendar' ? 'bg-emerald-400 text-black font-bold' : 'text-slate-300 hover:text-white'" class="px-3 py-1.5 rounded-lg text-sm transition">📅 训练日历</button>
+        <button @click="activeTab = 'recommend'" :class="activeTab === 'recommend' ? 'bg-brand-orange text-black font-bold' : 'text-slate-300 hover:text-white'" class="px-3 py-1.5 rounded-lg text-sm transition">💡 智能推荐</button>
+        <button @click="activeTab = 'nutrition'" :class="activeTab === 'nutrition' ? 'bg-amber-400 text-black font-bold' : 'text-slate-300 hover:text-white'" class="px-3 py-1.5 rounded-lg text-sm transition">🥗 AI 营养</button>
+        <button @click="activeTab = 'library'" :class="activeTab === 'library' ? 'bg-brand-blue text-black font-bold' : 'text-slate-300 hover:text-white'" class="px-3 py-1.5 rounded-lg text-sm transition">📚 动作库</button>
+        <button @click="activeTab = 'history'" :class="activeTab === 'history' ? 'bg-slate-700 text-white font-bold' : 'text-slate-300 hover:text-white'" class="px-3 py-1.5 rounded-lg text-sm transition">📈 历史分析</button>
+        <button @click="activeTab = 'sync'" :class="activeTab === 'sync' ? 'bg-slate-700 text-white font-bold' : 'text-slate-300 hover:text-white'" class="px-3 py-1.5 rounded-lg text-sm transition">⚙️ 同步与设置</button>
       </nav>
 
       <!-- 快速扫码与云端同步口令徽章 -->
@@ -179,6 +180,51 @@
           <span>🍚</span>
           <span class="text-slate-300">{{ calorieEquivalents }}</span>
         </div>
+      </section>
+
+      <!-- 全日热量收支与热量缺口天平卡片 (按用户公式：基础代谢 + 运动消耗 - 饮食摄入 = 热量缺口) -->
+      <section class="glass-panel rounded-2xl p-4 sm:p-5 border border-emerald-500/30 bg-gradient-to-br from-slate-900/95 via-slate-900/80 to-emerald-950/20 shadow-xl space-y-3">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center space-x-2">
+            <span class="text-xl">⚖️</span>
+            <div>
+              <h3 class="font-extrabold text-sm text-white">全日热量收支与缺口天平</h3>
+              <p class="text-[10px] text-slate-400">身高 {{ userProfile.height }}cm · 体重 {{ userProfile.weight }}kg · 基础代谢 (BMR) {{ bmrCalories }} kcal</p>
+            </div>
+          </div>
+          <span class="text-[11px] font-bold px-2.5 py-1 rounded-full border" :class="dailyEnergyDeficit.deficit >= 0 ? 'bg-emerald-500/10 text-brand-volt border-emerald-500/30' : 'bg-orange-500/10 text-brand-orange border-orange-500/30'">
+            {{ dailyEnergyDeficit.statusText }}
+          </span>
+        </div>
+
+        <!-- 四联计算公式条目 -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-xs">
+          <div class="bg-slate-950/70 p-2.5 rounded-xl border border-slate-800">
+            <span class="text-slate-400 text-[10px] block mb-0.5">1. 基础代谢 (BMR)</span>
+            <span class="font-num text-lg font-bold text-blue-400">{{ bmrCalories }}</span>
+            <span class="text-[9px] text-slate-500 block">Mifflin公式</span>
+          </div>
+          <div class="bg-slate-950/70 p-2.5 rounded-xl border border-slate-800">
+            <span class="text-slate-400 text-[10px] block mb-0.5">2. 当日运动消耗</span>
+            <span class="font-num text-lg font-bold text-brand-volt">+{{ todayTotalCalories }}</span>
+            <span class="text-[9px] text-slate-500 block">排球+力量+爬坡</span>
+          </div>
+          <div class="bg-slate-950/70 p-2.5 rounded-xl border border-slate-800">
+            <span class="text-slate-400 text-[10px] block mb-0.5">3. 当日饮食摄入</span>
+            <span class="font-num text-lg font-bold text-amber-400">-{{ todayNutritionTotal.calories }}</span>
+            <span class="text-[9px] text-slate-500 block">餐食总热量</span>
+          </div>
+          <div class="p-2.5 rounded-xl border flex flex-col justify-center" :class="dailyEnergyDeficit.deficit >= 0 ? 'bg-emerald-950/50 border-emerald-500/40 text-brand-volt' : 'bg-orange-950/50 border-orange-500/40 text-brand-orange'">
+            <span class="text-[9px] block opacity-80 mb-0.5">= 净热量缺口</span>
+            <span class="font-num text-xl font-black">{{ dailyEnergyDeficit.deficit >= 0 ? '+' : '' }}{{ dailyEnergyDeficit.deficit }}</span>
+            <span class="text-[9px] block opacity-70">KCAL</span>
+          </div>
+        </div>
+
+        <p class="text-[11px] text-slate-300 bg-slate-950/50 p-2.5 rounded-xl border border-slate-800/80 leading-relaxed">
+          💡 <span class="font-semibold text-white">收支说明：</span>
+          {{ dailyEnergyDeficit.summary }}
+        </p>
       </section>
 
       <!-- 排球实战打卡卡片 (支持高频 5-7 天打卡与疲劳反馈) -->
@@ -421,7 +467,282 @@
 
     </main>
 
-    <!-- ==================== 2. 智能推荐视图 (SMART RECOMMENDATIONS) ==================== -->
+    <!-- ==================== 2. 全新：训练与饮食综合日历视图 (CALENDAR) ==================== -->
+    <main v-if="activeTab === 'calendar'" class="space-y-4">
+      <!-- 日历顶部年月控制条 -->
+      <div class="glass-panel rounded-2xl p-4 border border-slate-800 flex items-center justify-between shadow-xl">
+        <div class="flex items-center space-x-3">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-volt to-emerald-600 flex items-center justify-center font-bold text-black text-xl shadow-lg shadow-emerald-500/20">
+            📅
+          </div>
+          <div>
+            <h2 class="text-base font-extrabold text-white flex items-center space-x-2">
+              <span>{{ calendarTitle }}</span>
+              <span class="text-xs text-brand-volt font-mono font-bold bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">训练与饮食日历</span>
+            </h2>
+            <p class="text-[11px] text-slate-400">每日训练排球/力量/爬坡与餐食摄入全景，自动核算每日热量缺口</p>
+          </div>
+        </div>
+
+        <div class="flex items-center space-x-1.5">
+          <button @click="prevMonth" class="w-8 h-8 rounded-xl bg-slate-900 border border-slate-700 text-slate-300 hover:text-white flex items-center justify-center text-sm transition" title="上一月">
+            ◀
+          </button>
+          <button @click="goToTodayCalendar" class="px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs text-slate-200 font-bold transition">
+            今天
+          </button>
+          <button @click="nextMonth" class="w-8 h-8 rounded-xl bg-slate-900 border border-slate-700 text-slate-300 hover:text-white flex items-center justify-center text-sm transition" title="下一月">
+            ▶
+          </button>
+        </div>
+      </div>
+
+      <!-- 身体生理参数与基础代谢基线提示卡 -->
+      <div class="glass-panel rounded-2xl p-3.5 border border-slate-800 bg-slate-900/60 flex flex-wrap items-center justify-between gap-2 text-xs">
+        <div class="flex items-center space-x-2 text-slate-300">
+          <span>🧍</span>
+          <span class="text-slate-400">运动员体测参数：</span>
+          <span class="font-bold text-white">身高 {{ userProfile.height }}cm</span>
+          <span class="text-slate-600">|</span>
+          <span class="font-bold text-white">体重 {{ userProfile.weight }}kg</span>
+          <span class="text-slate-600">|</span>
+          <span class="font-bold text-white">年龄 {{ userProfile.age }}岁 (男)</span>
+        </div>
+        <div class="flex items-center space-x-2">
+          <span class="text-slate-400">基础代谢 (BMR):</span>
+          <span class="font-num font-bold text-blue-400 text-sm">{{ bmrCalories }} KCAL/天</span>
+          <span class="text-[10px] text-slate-500">(Mifflin公式)</span>
+        </div>
+      </div>
+
+      <!-- 日历月视图主网格 -->
+      <div class="glass-panel rounded-2xl p-3 sm:p-4 border border-slate-800 shadow-xl overflow-hidden">
+        <!-- 星期一至星期日表头 -->
+        <div class="grid grid-cols-7 gap-1 sm:gap-1.5 text-center mb-2">
+          <span class="text-[11px] font-bold text-slate-400 py-1">一</span>
+          <span class="text-[11px] font-bold text-slate-400 py-1">二</span>
+          <span class="text-[11px] font-bold text-slate-400 py-1">三</span>
+          <span class="text-[11px] font-bold text-slate-400 py-1">四</span>
+          <span class="text-[11px] font-bold text-slate-400 py-1">五</span>
+          <span class="text-[11px] font-bold text-brand-orange py-1">六</span>
+          <span class="text-[11px] font-bold text-brand-orange py-1">日</span>
+        </div>
+
+        <!-- 35/42 日期单元格 -->
+        <div class="grid grid-cols-7 gap-1 sm:gap-1.5">
+          <div 
+            v-for="day in calendarGrid" 
+            :key="day.dateStr"
+            @click="selectCalendarDate(day.dateStr)"
+            :class="[
+              day.isCurrentMonth ? 'bg-slate-900/90 hover:bg-slate-800/90' : 'bg-slate-950/40 opacity-40 hover:opacity-75',
+              day.isSelected ? 'ring-2 ring-brand-volt shadow-lg shadow-emerald-500/20' : 'border border-slate-800/80',
+              day.isToday ? 'border-brand-volt/60' : ''
+            ]"
+            class="min-h-[75px] sm:min-h-[92px] p-1.5 rounded-xl flex flex-col justify-between cursor-pointer transition relative group"
+          >
+            <!-- 顶部：日期数字与标记 -->
+            <div class="flex items-center justify-between">
+              <span :class="day.isToday ? 'bg-brand-volt text-black px-1.5 py-0.2 rounded font-black' : 'text-slate-300 font-bold'" class="text-xs">
+                {{ day.dayNum }}
+              </span>
+              <span v-if="day.isToday" class="hidden sm:inline-block text-[9px] text-brand-volt font-bold">今天</span>
+            </div>
+
+            <!-- 中间：打卡事件微标 -->
+            <div class="space-y-0.5 my-1">
+              <!-- 排球比赛微标 -->
+              <div v-if="day.workout && day.workout.volleyball && day.workout.volleyball.enabled" class="flex items-center space-x-1 text-[9px] bg-orange-500/20 text-brand-orange px-1 py-0.5 rounded truncate font-medium">
+                <span>🏐</span>
+                <span class="truncate">{{ day.workout.volleyball.duration }}分</span>
+              </div>
+              <!-- 力量训练微标 -->
+              <div v-if="day.workout && day.workout.exercises && day.workout.exercises.length" class="flex items-center space-x-1 text-[9px] bg-blue-500/20 text-blue-300 px-1 py-0.5 rounded truncate font-medium">
+                <span>🏋️</span>
+                <span class="truncate">{{ day.workout.exercises.length }}动作</span>
+              </div>
+              <!-- 饮食记录微标 -->
+              <div v-if="day.meals && day.meals.length" class="flex items-center space-x-1 text-[9px] bg-amber-500/20 text-amber-300 px-1 py-0.5 rounded truncate font-medium">
+                <span>🥗</span>
+                <span class="truncate">{{ day.intake }}卡</span>
+              </div>
+            </div>
+
+            <!-- 底部：热量缺口/盈余微型徽章 -->
+            <div v-if="day.deficitStats" class="mt-auto">
+              <span 
+                :class="day.deficitStats.deficit >= 0 ? 'text-brand-volt bg-emerald-950/60 border border-emerald-500/30' : 'text-brand-orange bg-orange-950/60 border border-orange-500/30'"
+                class="text-[9px] block text-center rounded py-0.5 font-mono font-bold leading-none truncate"
+                :title="day.deficitStats.statusText"
+              >
+                {{ day.deficitStats.deficit >= 0 ? '+' : '' }}{{ day.deficitStats.deficit }}
+              </span>
+            </div>
+            <div v-else-if="day.isCurrentMonth" class="text-[9px] text-slate-700 text-center">-</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ==================== 当日全景训练与饮食明细卡 (SELECTED DAY) ==================== -->
+      <section v-if="selectedDayDetail" class="glass-panel rounded-2xl p-4 sm:p-5 border border-slate-700 relative shadow-2xl space-y-4">
+        <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-3">
+          <div class="flex items-center space-x-2.5">
+            <span class="text-2xl">📋</span>
+            <div>
+              <h3 class="text-base font-extrabold text-white flex items-center space-x-2">
+                <span>{{ selectedDayDetail.dateStr }} 全天运动饮食档案</span>
+                <span v-if="selectedDayDetail.dateStr === todayDate" class="text-xs bg-brand-volt text-black px-2 py-0.5 rounded-full font-bold">今日</span>
+              </h3>
+              <p class="text-xs text-slate-400">综合训练消耗、饮食摄入与热量缺口全景</p>
+            </div>
+          </div>
+
+          <div class="flex items-center space-x-2">
+            <button @click="jumpToPlanFromCalendar(selectedDayDetail.dateStr)" class="bg-brand-volt/20 hover:bg-brand-volt/30 text-brand-volt border border-brand-volt/40 text-xs font-bold px-3 py-1.5 rounded-xl transition flex items-center space-x-1">
+              <span>🏋️</span>
+              <span>进入规划训练</span>
+            </button>
+            <button @click="jumpToNutritionFromCalendar(selectedDayDetail.dateStr)" class="bg-amber-400/20 hover:bg-amber-400/30 text-amber-300 border border-amber-400/40 text-xs font-bold px-3 py-1.5 rounded-xl transition flex items-center space-x-1">
+              <span>🥗</span>
+              <span>记录餐食</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 1. 核心能量天平四联卡（基础代谢 + 运动消耗 - 饮食摄入 = 热量缺口） -->
+        <div class="bg-slate-950/70 rounded-2xl p-4 border border-slate-800 space-y-3">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center space-x-1.5">
+              <span>⚖️</span>
+              <span>当日热量缺口计算式</span>
+            </span>
+            <span :class="selectedDayDetail.deficitStats.deficit >= 0 ? 'bg-emerald-500/10 text-brand-volt border-emerald-500/30' : 'bg-orange-500/10 text-brand-orange border-orange-500/30'" class="text-xs font-bold px-2.5 py-0.5 rounded-full border">
+              {{ selectedDayDetail.deficitStats.statusText }}
+            </span>
+          </div>
+
+          <!-- 计算式条目 -->
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-xs">
+            <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-800">
+              <span class="text-slate-400 text-[10px] block mb-1">🧘 基础代谢 (BMR)</span>
+              <span class="font-num text-xl font-bold text-blue-400">{{ selectedDayDetail.bmr }}</span>
+              <span class="text-[10px] text-slate-500 block">174cm / 76kg</span>
+            </div>
+            <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-800">
+              <span class="text-slate-400 text-[10px] block mb-1">⚡ 当日运动消耗</span>
+              <span class="font-num text-xl font-bold text-brand-volt">+{{ selectedDayDetail.exerciseBurn }}</span>
+              <span class="text-[10px] text-slate-500 block">排球+力量+爬坡</span>
+            </div>
+            <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-800">
+              <span class="text-slate-400 text-[10px] block mb-1">🍲 饮食摄入</span>
+              <span class="font-num text-xl font-bold text-amber-400">-{{ selectedDayDetail.nutritionTotal.calories }}</span>
+              <span class="text-[10px] text-slate-500 block">全天记录餐食</span>
+            </div>
+            <div class="p-3 rounded-xl border flex flex-col justify-center" :class="selectedDayDetail.deficitStats.deficit >= 0 ? 'bg-emerald-950/50 border-emerald-500/40 text-brand-volt' : 'bg-orange-950/50 border-orange-500/40 text-brand-orange'">
+              <span class="text-[10px] block opacity-80 mb-0.5">= 净热量缺口</span>
+              <span class="font-num text-2xl font-black">{{ selectedDayDetail.deficitStats.deficit >= 0 ? '+' : '' }}{{ selectedDayDetail.deficitStats.deficit }}</span>
+              <span class="text-[10px] block opacity-70">KCAL</span>
+            </div>
+          </div>
+
+          <p class="text-[11px] text-slate-300 leading-relaxed bg-slate-900/50 p-2.5 rounded-xl border border-slate-800/80">
+            {{ selectedDayDetail.deficitStats.summary }}
+          </p>
+        </div>
+
+        <!-- 2. 训练内容板块 -->
+        <div class="glass-panel rounded-2xl p-4 border border-slate-800 space-y-3">
+          <div class="flex items-center justify-between">
+            <h4 class="text-xs font-bold text-white flex items-center space-x-1.5">
+              <span>🏐</span>
+              <span>当日训练内容 (运动消耗 {{ selectedDayDetail.exerciseBurn }} kcal · 搬运容量 {{ selectedDayDetail.totalVolume.toLocaleString() }} kg)</span>
+            </h4>
+          </div>
+
+          <!-- 排球比赛记录 -->
+          <div v-if="selectedDayDetail.workout.volleyball && selectedDayDetail.workout.volleyball.enabled" class="bg-slate-950/60 p-3 rounded-xl border border-slate-800 flex items-center justify-between text-xs">
+            <div class="flex items-center space-x-2">
+              <span class="text-xl">🏐</span>
+              <div>
+                <span class="font-bold text-white">排球实战对抗</span>
+                <span class="text-[10px] text-brand-orange ml-2 bg-orange-500/10 px-2 py-0.5 rounded-full border border-orange-500/20">
+                  {{ selectedDayDetail.workout.volleyball.intensity === 'competitive' ? '激烈对抗赛' : (selectedDayDetail.workout.volleyball.intensity === 'spiking_drills' ? '扣球摸高' : '休闲传垫') }}
+                </span>
+                <p v-if="selectedDayDetail.workout.volleyball.notes" class="text-[11px] text-slate-400 mt-0.5">{{ selectedDayDetail.workout.volleyball.notes }}</p>
+              </div>
+            </div>
+            <div class="text-right">
+              <span class="font-bold text-brand-orange font-num text-sm">{{ selectedDayDetail.workout.volleyball.duration }} 分钟</span>
+            </div>
+          </div>
+
+          <!-- 爬坡机记录 -->
+          <div v-if="selectedDayDetail.workout.treadmill && selectedDayDetail.workout.treadmill.enabled" class="bg-slate-950/60 p-3 rounded-xl border border-slate-800 flex items-center justify-between text-xs">
+            <div class="flex items-center space-x-2">
+              <span class="text-xl">🏃</span>
+              <div>
+                <span class="font-bold text-white">跑步机坡度快走 (ACSM 黄金公式)</span>
+                <span class="text-[10px] text-slate-400 ml-2">坡度 {{ selectedDayDetail.workout.treadmill.incline }}% · 时速 {{ selectedDayDetail.workout.treadmill.speed }} km/h</span>
+              </div>
+            </div>
+            <span class="font-bold text-brand-volt font-num text-sm">{{ selectedDayDetail.workout.treadmill.duration }} 分钟</span>
+          </div>
+
+          <!-- 动作组数清单 -->
+          <div v-if="selectedDayDetail.workout.exercises && selectedDayDetail.workout.exercises.length" class="space-y-2">
+            <div v-for="(ex, idx) in selectedDayDetail.workout.exercises" :key="idx" class="bg-slate-950/40 p-2.5 rounded-xl border border-slate-800/80 text-xs flex items-center justify-between">
+              <div>
+                <span class="font-bold text-slate-200">{{ ex.name }}</span>
+                <span class="text-[10px] text-slate-500 ml-2">{{ ex.equipment }}</span>
+              </div>
+              <div class="text-slate-400 text-[11px] font-mono">
+                {{ ex.sets ? ex.sets.length : 0 }} 组 · {{ ex.sets ? ex.sets.filter(s => s.completed).length : 0 }} 组完成
+              </div>
+            </div>
+          </div>
+
+          <div v-if="!selectedDayDetail.workout.exercises.length && !selectedDayDetail.workout.volleyball?.enabled && !selectedDayDetail.workout.treadmill?.enabled" class="text-center py-4 text-slate-500 text-xs">
+            当天暂无安排训练记录
+          </div>
+        </div>
+
+        <!-- 3. 饮食内容板块 -->
+        <div class="glass-panel rounded-2xl p-4 border border-slate-800 space-y-3">
+          <div class="flex items-center justify-between">
+            <h4 class="text-xs font-bold text-white flex items-center space-x-1.5">
+              <span>🥗</span>
+              <span>当日餐食内容 (总摄入 {{ selectedDayDetail.nutritionTotal.calories }} kcal)</span>
+            </h4>
+            <div class="text-[10px] text-slate-400 space-x-2">
+              <span>碳水: <strong class="text-amber-400">{{ selectedDayDetail.nutritionTotal.carbs }}g</strong></span>
+              <span>蛋白: <strong class="text-blue-400">{{ selectedDayDetail.nutritionTotal.protein }}g</strong></span>
+              <span>脂肪: <strong class="text-rose-400">{{ selectedDayDetail.nutritionTotal.fat }}g</strong></span>
+            </div>
+          </div>
+
+          <div v-if="selectedDayDetail.meals && selectedDayDetail.meals.length" class="space-y-2">
+            <div v-for="(meal, mIdx) in selectedDayDetail.meals" :key="mIdx" class="bg-slate-950/60 p-3 rounded-xl border border-slate-800 text-xs space-y-1">
+              <div class="flex items-center justify-between">
+                <span class="font-bold text-slate-200">{{ meal.dishName }}</span>
+                <span class="font-bold text-amber-400 font-num">{{ meal.calories }} KCAL</span>
+              </div>
+              <div class="flex items-center space-x-3 text-[10px] text-slate-400">
+                <span>碳水 {{ meal.carbs }}g</span>
+                <span>蛋白质 {{ meal.protein }}g</span>
+                <span>脂肪 {{ meal.fat }}g</span>
+                <span v-if="meal.fiber">纤维 {{ meal.fiber }}g</span>
+              </div>
+              <p v-if="meal.advice" class="text-[10px] text-slate-500 leading-tight">{{ meal.advice }}</p>
+            </div>
+          </div>
+          <div v-else class="text-center py-4 text-slate-500 text-xs">
+            当天暂无饮食记录
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- ==================== 3. 智能推荐视图 (SMART RECOMMENDATIONS) ==================== -->
     <main v-if="activeTab === 'recommend'" class="space-y-4">
       <div class="glass-panel rounded-2xl p-5 border border-slate-800">
         <div class="flex items-center justify-between mb-3">
@@ -509,24 +830,29 @@
           </span>
         </div>
 
-        <!-- 摄入 / 消耗 / 净额对比 -->
-        <div class="grid grid-cols-3 gap-2.5 text-center my-3">
-          <div class="bg-slate-950/60 p-3 rounded-xl border border-slate-800">
-            <span class="text-[11px] text-slate-400 block mb-0.5">🥗 饮食总摄入</span>
-            <span class="font-num text-2xl font-bold text-amber-400">{{ todayNutritionTotal.calories }}</span>
-            <span class="text-[10px] text-slate-500 block">kcal</span>
+        <!-- 基础代谢 + 运动消耗 - 饮食摄入 = 热量缺口 -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center my-3 text-xs">
+          <div class="bg-slate-950/70 p-2.5 rounded-xl border border-slate-800">
+            <span class="text-[10px] text-slate-400 block mb-0.5">🧘 基础代谢 (BMR)</span>
+            <span class="font-num text-lg font-bold text-blue-400">{{ bmrCalories }}</span>
+            <span class="text-[9px] text-slate-500 block">174cm / 76kg</span>
           </div>
-          <div class="bg-slate-950/60 p-3 rounded-xl border border-slate-800">
-            <span class="text-[11px] text-slate-400 block mb-0.5">🔥 运动总消耗</span>
-            <span class="font-num text-2xl font-bold text-brand-volt">{{ todayTotalCalories }}</span>
-            <span class="text-[10px] text-slate-500 block">kcal</span>
+          <div class="bg-slate-950/70 p-2.5 rounded-xl border border-slate-800">
+            <span class="text-[10px] text-slate-400 block mb-0.5">⚡ 运动总消耗</span>
+            <span class="font-num text-lg font-bold text-brand-volt">+{{ todayTotalCalories }}</span>
+            <span class="text-[9px] text-slate-500 block">力量+爬坡+排球</span>
           </div>
-          <div class="bg-slate-950/60 p-3 rounded-xl border border-slate-800">
-            <span class="text-[11px] text-slate-400 block mb-0.5">⚖️ 净能量差额</span>
-            <span class="font-num text-2xl font-bold" :class="netEnergyBalance.balance >= 0 ? 'text-brand-volt' : 'text-brand-orange'">
-              {{ netEnergyBalance.balance >= 0 ? '+' + netEnergyBalance.balance : netEnergyBalance.balance }}
+          <div class="bg-slate-950/70 p-2.5 rounded-xl border border-slate-800">
+            <span class="text-[10px] text-slate-400 block mb-0.5">🍲 饮食总摄入</span>
+            <span class="font-num text-lg font-bold text-amber-400">-{{ todayNutritionTotal.calories }}</span>
+            <span class="text-[9px] text-slate-500 block">今日录入餐食</span>
+          </div>
+          <div class="p-2.5 rounded-xl border flex flex-col justify-center" :class="dailyEnergyDeficit.deficit >= 0 ? 'bg-emerald-950/50 border-emerald-500/40 text-brand-volt' : 'bg-orange-950/50 border-orange-500/40 text-brand-orange'">
+            <span class="text-[9px] block opacity-80 mb-0.5">= 净热量缺口</span>
+            <span class="font-num text-xl font-black">
+              {{ dailyEnergyDeficit.deficit >= 0 ? '+' : '' }}{{ dailyEnergyDeficit.deficit }}
             </span>
-            <span class="text-[10px] text-slate-500 block">kcal</span>
+            <span class="text-[9px] block opacity-70">KCAL</span>
           </div>
         </div>
 
@@ -927,30 +1253,34 @@
     </main>
 
     <!-- ==================== 移动端底部固定导航栏 ==================== -->
-    <nav class="md:hidden fixed bottom-0 left-0 right-0 glass-panel border-t border-slate-800/80 px-2 py-2 flex justify-around items-center z-50">
-      <button @click="activeTab = 'today'" class="flex flex-col items-center py-1 px-2.5 rounded-xl transition" :class="activeTab === 'today' ? 'text-brand-volt' : 'text-slate-500'">
-        <span class="text-lg">📋</span>
-        <span class="text-[10px] font-bold mt-0.5">今日计划</span>
+    <nav class="md:hidden fixed bottom-0 left-0 right-0 glass-panel border-t border-slate-800/80 px-1 py-1.5 flex justify-around items-center z-50">
+      <button @click="activeTab = 'today'" class="flex flex-col items-center py-1 px-1.5 rounded-xl transition" :class="activeTab === 'today' ? 'text-brand-volt' : 'text-slate-500'">
+        <span class="text-base">📋</span>
+        <span class="text-[9px] font-bold mt-0.5">计划</span>
       </button>
-      <button @click="activeTab = 'recommend'" class="flex flex-col items-center py-1 px-2 rounded-xl transition" :class="activeTab === 'recommend' ? 'text-brand-orange' : 'text-slate-500'">
-        <span class="text-lg">💡</span>
-        <span class="text-[10px] font-bold mt-0.5">智能推荐</span>
+      <button @click="activeTab = 'calendar'" class="flex flex-col items-center py-1 px-1.5 rounded-xl transition" :class="activeTab === 'calendar' ? 'text-emerald-400' : 'text-slate-500'">
+        <span class="text-base">📅</span>
+        <span class="text-[9px] font-bold mt-0.5">日历</span>
       </button>
-      <button @click="activeTab = 'nutrition'" class="flex flex-col items-center py-1 px-2 rounded-xl transition" :class="activeTab === 'nutrition' ? 'text-amber-400' : 'text-slate-500'">
-        <span class="text-lg">🥗</span>
-        <span class="text-[10px] font-bold mt-0.5">AI营养</span>
+      <button @click="activeTab = 'recommend'" class="flex flex-col items-center py-1 px-1.5 rounded-xl transition" :class="activeTab === 'recommend' ? 'text-brand-orange' : 'text-slate-500'">
+        <span class="text-base">💡</span>
+        <span class="text-[9px] font-bold mt-0.5">推荐</span>
       </button>
-      <button @click="activeTab = 'library'" class="flex flex-col items-center py-1 px-2 rounded-xl transition" :class="activeTab === 'library' ? 'text-brand-blue' : 'text-slate-500'">
-        <span class="text-lg">📚</span>
-        <span class="text-[10px] font-bold mt-0.5">动作库</span>
+      <button @click="activeTab = 'nutrition'" class="flex flex-col items-center py-1 px-1.5 rounded-xl transition" :class="activeTab === 'nutrition' ? 'text-amber-400' : 'text-slate-500'">
+        <span class="text-base">🥗</span>
+        <span class="text-[9px] font-bold mt-0.5">饮食</span>
       </button>
-      <button @click="activeTab = 'history'" class="flex flex-col items-center py-1 px-2.5 rounded-xl transition" :class="activeTab === 'history' ? 'text-white' : 'text-slate-500'">
-        <span class="text-lg">📈</span>
-        <span class="text-[10px] font-bold mt-0.5">历史能耗</span>
+      <button @click="activeTab = 'library'" class="flex flex-col items-center py-1 px-1.5 rounded-xl transition" :class="activeTab === 'library' ? 'text-brand-blue' : 'text-slate-500'">
+        <span class="text-base">📚</span>
+        <span class="text-[9px] font-bold mt-0.5">动作库</span>
       </button>
-      <button @click="activeTab = 'sync'" class="flex flex-col items-center py-1 px-2.5 rounded-xl transition" :class="activeTab === 'sync' ? 'text-brand-volt' : 'text-slate-500'">
-        <span class="text-lg">⚙️</span>
-        <span class="text-[10px] font-bold mt-0.5">同步</span>
+      <button @click="activeTab = 'history'" class="flex flex-col items-center py-1 px-1.5 rounded-xl transition" :class="activeTab === 'history' ? 'text-white' : 'text-slate-500'">
+        <span class="text-base">📈</span>
+        <span class="text-[9px] font-bold mt-0.5">趋势</span>
+      </button>
+      <button @click="activeTab = 'sync'" class="flex flex-col items-center py-1 px-1.5 rounded-xl transition" :class="activeTab === 'sync' ? 'text-brand-volt' : 'text-slate-500'">
+        <span class="text-base">⚙️</span>
+        <span class="text-[9px] font-bold mt-0.5">设置</span>
       </button>
     </nav>
 
