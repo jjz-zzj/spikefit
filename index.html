@@ -1,0 +1,1028 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>SpikeFit - 排球专项体能与健身计划</title>
+  
+  <!-- PWA 支持 -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏐</text></svg>">
+  <link rel="manifest" href="./manifest.json">
+  <meta name="theme-color" content="#0a0e17">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="SpikeFit">
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              dark: '#0a0e17',
+              card: '#131b2e',
+              border: '#1e293b',
+              green: '#10b981',
+              volt: '#00f59b',
+              orange: '#f97316',
+              blue: '#38bdf8'
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Vue 3 CDN -->
+  <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+  
+  <!-- 定制样式 -->
+  <link rel="stylesheet" href="./css/custom.css">
+</head>
+<body class="bg-brand-dark text-slate-100 min-h-screen pb-24 md:pb-10 selection:bg-brand-volt selection:text-black">
+  <div id="app" v-cloak class="max-w-4xl mx-auto px-3 sm:px-6 pt-4">
+
+    <!-- 顶部状态栏与导航 (电脑与手机均适配) -->
+    <header class="glass-panel rounded-2xl p-4 mb-4 flex items-center justify-between shadow-xl">
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-orange via-amber-500 to-brand-volt flex items-center justify-center font-bold text-black text-xl shadow-lg shadow-orange-500/20">
+          🏐
+        </div>
+        <div>
+          <div class="flex items-center space-x-2">
+            <h1 class="text-lg font-black tracking-wider text-white">SPIKE<span class="text-brand-volt">FIT</span></h1>
+            <span class="text-[10px] bg-slate-800 text-brand-orange border border-orange-500/30 px-2 py-0.5 rounded-full font-medium">排球体能</span>
+          </div>
+          <p class="text-xs text-slate-400">{{ planDateMode === 'tomorrow' ? '预排: ' + tomorrowDate : todayDate }} · 体重 {{ userProfile.weight }}kg</p>
+        </div>
+      </div>
+
+      <!-- 电脑端顶部快捷菜单 -->
+      <nav class="hidden md:flex items-center space-x-1 bg-slate-900/80 p-1.5 rounded-xl border border-slate-800">
+        <button @click="activeTab = 'today'" :class="activeTab === 'today' ? 'bg-brand-volt text-black font-bold' : 'text-slate-300 hover:text-white'" class="px-3.5 py-1.5 rounded-lg text-sm transition">📋 今日计划</button>
+        <button @click="activeTab = 'recommend'" :class="activeTab === 'recommend' ? 'bg-brand-orange text-black font-bold' : 'text-slate-300 hover:text-white'" class="px-3.5 py-1.5 rounded-lg text-sm transition">💡 智能推荐</button>
+        <button @click="activeTab = 'nutrition'" :class="activeTab === 'nutrition' ? 'bg-amber-400 text-black font-bold' : 'text-slate-300 hover:text-white'" class="px-3.5 py-1.5 rounded-lg text-sm transition">🥗 AI 营养</button>
+        <button @click="activeTab = 'library'" :class="activeTab === 'library' ? 'bg-brand-blue text-black font-bold' : 'text-slate-300 hover:text-white'" class="px-3.5 py-1.5 rounded-lg text-sm transition">📚 动作库</button>
+        <button @click="activeTab = 'history'" :class="activeTab === 'history' ? 'bg-slate-700 text-white font-bold' : 'text-slate-300 hover:text-white'" class="px-3.5 py-1.5 rounded-lg text-sm transition">📈 历史能耗</button>
+        <button @click="activeTab = 'sync'" :class="activeTab === 'sync' ? 'bg-slate-700 text-white font-bold' : 'text-slate-300 hover:text-white'" class="px-3.5 py-1.5 rounded-lg text-sm transition">⚙️ 同步与设置</button>
+      </nav>
+
+      <!-- 快速扫码与云端同步口令徽章 -->
+      <div class="flex items-center space-x-2">
+        <button @click="showQrModal = true" class="hidden sm:flex items-center space-x-1.5 bg-slate-900/90 hover:bg-slate-800 border border-slate-700/80 px-3 py-1.5 rounded-xl text-xs font-bold text-slate-200 transition">
+          <span>📱</span>
+          <span>手机扫码打开</span>
+        </button>
+        <div @click="activeTab = 'sync'" class="flex items-center space-x-2 bg-slate-900/90 hover:bg-slate-800 border border-slate-700/80 px-3 py-1.5 rounded-xl cursor-pointer transition" title="点击进入同步设置">
+          <span class="w-2 h-2 rounded-full bg-brand-volt animate-pulse"></span>
+          <span class="text-xs font-mono font-bold text-slate-200">口令: {{ syncCode }}</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- ==================== 1. 今日与明日计划视图 (PLAN) ==================== -->
+    <main v-if="activeTab === 'today'" class="space-y-4">
+      
+      <!-- 计划日期模式切换：今日打卡 vs 明日预排 -->
+      <div class="glass-panel rounded-2xl p-2 border border-slate-800 flex items-center justify-between shadow-lg">
+        <div class="flex items-center space-x-1.5">
+          <button @click="switchPlanDate('today')" :class="planDateMode === 'today' ? 'bg-brand-volt text-black font-extrabold shadow-md shadow-emerald-500/20' : 'text-slate-400 hover:text-white'" class="px-3.5 py-1.5 rounded-xl text-xs transition flex items-center space-x-1.5">
+            <span>📅 今日打卡</span>
+            <span class="text-[10px] opacity-75 font-mono">({{ todayDateShort }})</span>
+          </button>
+          <button @click="switchPlanDate('tomorrow')" :class="planDateMode === 'tomorrow' ? 'bg-brand-orange text-black font-extrabold shadow-md shadow-orange-500/20' : 'text-slate-400 hover:text-white'" class="px-3.5 py-1.5 rounded-xl text-xs transition flex items-center space-x-1.5">
+            <span>🚀 明日预排</span>
+            <span class="text-[10px] opacity-75 font-mono">({{ tomorrowDateShort }})</span>
+          </button>
+        </div>
+        <div class="pr-2 text-right">
+          <span v-if="planDateMode === 'tomorrow'" class="text-[11px] text-brand-orange font-bold bg-orange-500/10 border border-orange-500/20 px-2.5 py-1 rounded-full">
+            明日方案已载入
+          </span>
+          <span v-else class="text-[11px] text-brand-volt font-medium bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-full">
+            今日实时打卡
+          </span>
+        </div>
+      </div>
+
+      <!-- 今日计划专属实战就绪横幅 -->
+      <div v-if="planDateMode === 'today'" class="bg-gradient-to-r from-emerald-950/40 via-slate-900/40 to-blue-950/30 border border-emerald-500/30 p-3.5 rounded-2xl text-xs space-y-1 shadow-lg">
+        <div class="flex items-center justify-between">
+          <span class="font-bold text-brand-volt flex items-center space-x-1.5">
+            <span>🏐</span>
+            <span>今日排球实战前·推力与扣球核心方案已就绪（{{ todayDate }}）</span>
+          </span>
+          <span class="text-[10px] text-brand-orange font-bold bg-orange-500/10 border border-orange-500/20 px-2 py-0.5 rounded-full">排球对抗日</span>
+        </div>
+        <p class="text-slate-300 text-[11px] leading-relaxed">
+          根据你昨天已完成背部训练、今天安排了排球实战，已为你自动加载【胸部推力 + 扣球转体核心 + 弹跳跟腱与肩袖防伤激活】方案。去健身房直接勾选打卡即可！
+        </p>
+      </div>
+
+      <!-- 明日预排专属贴心提示横幅 -->
+      <div v-if="planDateMode === 'tomorrow'" class="bg-gradient-to-r from-orange-950/40 via-amber-950/20 to-slate-900/50 border border-orange-500/30 p-3.5 rounded-2xl text-xs space-y-1 shadow-lg">
+        <div class="flex items-center justify-between">
+          <span class="font-bold text-brand-orange flex items-center space-x-1.5">
+            <span>💡</span>
+            <span>明日排球实战专训已预排（{{ tomorrowDate }}）</span>
+          </span>
+          <span class="text-[10px] text-slate-400">明早将自动变为今日计划</span>
+        </div>
+        <p class="text-slate-300 text-[11px] leading-relaxed">
+          针对你今天已完成背部力量训练、明天安排了排球比赛，系统已为你专属配置【胸部推力 + 扣球转体核心 + 弹跳跟腱与肩袖防伤激活】方案。明早到健身房直接按此清单执行即可！
+        </p>
+      </div>
+
+      <!-- 能耗仪表盘大卡片 -->
+      <section class="glass-panel rounded-2xl p-5 border border-slate-800 relative overflow-hidden">
+        <div class="absolute -right-8 -top-8 w-36 h-36 bg-brand-volt/10 rounded-full blur-2xl pointer-events-none"></div>
+        <div class="absolute -left-8 -bottom-8 w-36 h-36 bg-brand-orange/10 rounded-full blur-2xl pointer-events-none"></div>
+
+        <div class="flex items-center justify-between mb-3">
+          <div class="text-xs uppercase tracking-widest text-slate-400 font-bold flex items-center space-x-1.5">
+            <span class="w-1.5 h-1.5 rounded-full" :class="planDateMode === 'tomorrow' ? 'bg-brand-orange' : 'bg-brand-volt'"></span>
+            <span>{{ planDateMode === 'tomorrow' ? '明日消耗能量预估' : '今日消耗能量预估' }}</span>
+          </div>
+          <span class="text-xs text-brand-orange font-medium bg-orange-500/10 border border-orange-500/20 px-2.5 py-1 rounded-full">
+            搬运容量: {{ strengthStats.volume.toLocaleString() }} kg
+          </span>
+        </div>
+
+        <div class="flex items-baseline space-x-2">
+          <span class="font-num text-6xl md:text-7xl font-bold tracking-tight text-white leading-none">
+            {{ todayTotalCalories }}
+          </span>
+          <span class="text-xl md:text-2xl font-bold text-brand-volt">KCAL</span>
+        </div>
+
+        <!-- 细分能耗指示条 -->
+        <div class="grid grid-cols-3 gap-2 mt-4 pt-3 border-t border-slate-800/80 text-xs">
+          <div class="bg-slate-900/60 rounded-xl p-2.5 border border-slate-800">
+            <span class="text-slate-400 block mb-0.5">🏐 排球实战</span>
+            <span class="font-bold text-brand-orange text-sm font-num">{{ volleyballCalories }} <span class="text-[10px]">kcal</span></span>
+          </div>
+          <div class="bg-slate-900/60 rounded-xl p-2.5 border border-slate-800">
+            <span class="text-slate-400 block mb-0.5">🧗 爬坡机有氧</span>
+            <span class="font-bold text-brand-blue text-sm font-num">{{ treadmillCalories }} <span class="text-[10px]">kcal</span></span>
+          </div>
+          <div class="bg-slate-900/60 rounded-xl p-2.5 border border-slate-800">
+            <span class="text-slate-400 block mb-0.5">🏋️ 力量与弹跳</span>
+            <span class="font-bold text-brand-volt text-sm font-num">{{ strengthStats.calories }} <span class="text-[10px]">kcal</span></span>
+          </div>
+        </div>
+
+        <!-- 直观食物换算 -->
+        <div class="mt-3 text-xs text-slate-400 flex items-center space-x-1.5 bg-slate-950/40 px-3 py-2 rounded-xl">
+          <span>🍚</span>
+          <span class="text-slate-300">{{ calorieEquivalents }}</span>
+        </div>
+      </section>
+
+      <!-- 排球实战打卡卡片 (支持高频 5-7 天打卡与疲劳反馈) -->
+      <section class="glass-panel rounded-2xl p-4 border border-slate-800 transition">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center space-x-2.5">
+            <span class="text-2xl">🏐</span>
+            <div>
+              <h2 class="text-base font-bold text-white">排球运动打卡</h2>
+              <p class="text-xs text-slate-400">日常排球、对抗比赛与扣球专项摸高</p>
+            </div>
+          </div>
+          <label class="relative inline-flex items-center cursor-pointer">
+            <input type="checkbox" v-model="todayVolleyball.enabled" class="sr-only peer">
+            <div class="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-orange"></div>
+          </label>
+        </div>
+
+        <!-- 展开排球设置 -->
+        <div v-if="todayVolleyball.enabled" class="mt-4 pt-3 border-t border-slate-800/80 space-y-3">
+          <!-- 运动对抗强度 -->
+          <div>
+            <label class="text-xs text-slate-300 font-medium mb-1.5 block">选择运动强度：</label>
+            <div class="grid grid-cols-3 gap-2">
+              <button @click="todayVolleyball.intensity = 'casual'" :class="todayVolleyball.intensity === 'casual' ? 'bg-orange-500 text-black font-bold' : 'bg-slate-900 text-slate-300 border border-slate-800'" class="py-2 px-1 rounded-xl text-xs transition">
+                休闲传垫 (MET 4.0)
+              </button>
+              <button @click="todayVolleyball.intensity = 'spiking_drills'" :class="todayVolleyball.intensity === 'spiking_drills' ? 'bg-orange-500 text-black font-bold' : 'bg-slate-900 text-slate-300 border border-slate-800'" class="py-2 px-1 rounded-xl text-xs transition">
+                扣球摸高 (MET 6.5)
+              </button>
+              <button @click="todayVolleyball.intensity = 'competitive'" :class="todayVolleyball.intensity === 'competitive' ? 'bg-orange-500 text-black font-bold' : 'bg-slate-900 text-slate-300 border border-slate-800'" class="py-2 px-1 rounded-xl text-xs transition">
+                激烈对抗赛 (MET 8.0)
+              </button>
+            </div>
+          </div>
+
+          <!-- 时长滑块 -->
+          <div>
+            <div class="flex justify-between text-xs text-slate-300 mb-1">
+              <span>运动时长:</span>
+              <span class="text-brand-orange font-bold font-num text-sm">{{ todayVolleyball.duration }} 分钟</span>
+            </div>
+            <input type="range" min="15" max="180" step="15" v-model.number="todayVolleyball.duration" class="w-full accent-brand-orange cursor-pointer">
+          </div>
+
+          <!-- 身体反馈评分 (选填项，辅助次日动态推荐) -->
+          <div class="bg-slate-950/60 p-3 rounded-xl border border-slate-800/80">
+            <div class="text-xs text-slate-300 font-bold mb-2 flex items-center justify-between">
+              <span>🩺 身体感受打分 (选填，自动校准力量推荐)</span>
+            </div>
+            <div class="grid grid-cols-2 gap-3 text-xs">
+              <div>
+                <span class="text-slate-400 block mb-1">肩部疲劳感:</span>
+                <div class="flex space-x-1">
+                  <span v-for="star in 5" :key="'s'+star" @click="todayVolleyball.shoulderFatigue = star" class="cursor-pointer text-lg" :class="star <= todayVolleyball.shoulderFatigue ? 'text-amber-400' : 'text-slate-700'">★</span>
+                </div>
+              </div>
+              <div>
+                <span class="text-slate-400 block mb-1">膝盖疲劳感:</span>
+                <div class="flex space-x-1">
+                  <span v-for="star in 5" :key="'k'+star" @click="todayVolleyball.kneeFatigue = star" class="cursor-pointer text-lg" :class="star <= todayVolleyball.kneeFatigue ? 'text-amber-400' : 'text-slate-700'">★</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 健身房爬坡机卡片 (ACSM 公式计算) -->
+      <section class="glass-panel rounded-2xl p-4 border border-slate-800 transition">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center space-x-2.5">
+            <span class="text-2xl">🧗</span>
+            <div>
+              <h2 class="text-base font-bold text-white">健身房坡度爬坡机</h2>
+              <p class="text-xs text-slate-400">高燃脂、无膝盖冲击、强化臀腿后链</p>
+            </div>
+          </div>
+          <label class="relative inline-flex items-center cursor-pointer">
+            <input type="checkbox" v-model="todayTreadmill.enabled" class="sr-only peer">
+            <div class="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-blue"></div>
+          </label>
+        </div>
+
+        <!-- 展开爬坡机参数设置 -->
+        <div v-if="todayTreadmill.enabled" class="mt-4 pt-3 border-t border-slate-800/80 space-y-3">
+          <!-- 实时 ACSM 数据指标 -->
+          <div class="bg-blue-950/30 border border-blue-500/20 p-2.5 rounded-xl flex items-center justify-between text-xs">
+            <div>
+              <span class="text-slate-400">摄氧量 VO₂: </span>
+              <span class="font-bold text-brand-blue">{{ treadmillDetails.vo2 }} ml/kg/min</span>
+            </div>
+            <div>
+              <span class="text-slate-400">强度 MET: </span>
+              <span class="font-bold text-brand-blue">{{ treadmillDetails.met }}</span>
+            </div>
+            <div>
+              <span class="text-slate-400">能耗率: </span>
+              <span class="font-bold text-brand-blue">{{ treadmillDetails.kcalPerMin }} kcal/min</span>
+            </div>
+          </div>
+
+          <!-- 坡度滑块 -->
+          <div>
+            <div class="flex justify-between text-xs text-slate-300 mb-1">
+              <span>跑步机坡度 (Incline):</span>
+              <span class="text-brand-blue font-bold font-num text-sm">{{ todayTreadmill.incline }} %</span>
+            </div>
+            <input type="range" min="0" max="18" step="1" v-model.number="todayTreadmill.incline" class="w-full accent-brand-blue cursor-pointer">
+          </div>
+
+          <!-- 速度滑块 -->
+          <div>
+            <div class="flex justify-between text-xs text-slate-300 mb-1">
+              <span>步行速度 (Speed):</span>
+              <span class="text-brand-blue font-bold font-num text-sm">{{ todayTreadmill.speed }} km/h</span>
+            </div>
+            <input type="range" min="2.5" max="6.5" step="0.1" v-model.number="todayTreadmill.speed" class="w-full accent-brand-blue cursor-pointer">
+          </div>
+
+          <!-- 时长滑块 -->
+          <div>
+            <div class="flex justify-between text-xs text-slate-300 mb-1">
+              <span>爬坡时长:</span>
+              <span class="text-brand-blue font-bold font-num text-sm">{{ todayTreadmill.duration }} 分钟</span>
+            </div>
+            <input type="range" min="5" max="60" step="5" v-model.number="todayTreadmill.duration" class="w-full accent-brand-blue cursor-pointer">
+          </div>
+        </div>
+      </section>
+
+      <!-- 力量与弹跳动作列表 -->
+      <section class="space-y-3">
+        <div class="flex items-center justify-between px-1">
+          <div class="flex items-center space-x-2">
+            <h2 class="text-sm font-bold text-slate-200">力量与排球专项训练</h2>
+            <span class="text-xs bg-slate-800 text-brand-volt px-2 py-0.5 rounded-full font-num">{{ todayExercises.length }} 项</span>
+          </div>
+
+          <div class="flex items-center space-x-2">
+            <button @click="activeTab = 'library'" class="text-xs bg-slate-800 hover:bg-slate-700 text-brand-volt px-3 py-1.5 rounded-xl border border-slate-700 flex items-center space-x-1 transition">
+              <span>＋ 选动作</span>
+            </button>
+            <button @click="activeTab = 'recommend'" class="text-xs bg-orange-500/20 hover:bg-orange-500/30 text-brand-orange px-3 py-1.5 rounded-xl border border-orange-500/30 flex items-center space-x-1 transition">
+              <span>💡 看推荐</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 暂无动作提示 -->
+        <div v-if="todayExercises.length === 0" class="glass-panel rounded-2xl p-8 text-center border border-dashed border-slate-800">
+          <span class="text-4xl block mb-2">⚡</span>
+          <h3 class="text-sm font-bold text-slate-300 mb-1">今日计划尚无力量动作</h3>
+          <p class="text-xs text-slate-500 mb-4 max-w-xs mx-auto">你可以直接应用根据排球频次量身定制的“智能推荐”，或从动作库自由添加动作。</p>
+          <div class="flex justify-center space-x-3">
+            <button @click="applyRecommendation" class="bg-brand-volt text-black font-bold text-xs px-4 py-2 rounded-xl shadow-lg shadow-emerald-500/20 hover:opacity-90 transition">
+              ⚡ 一键载入今日推荐组合
+            </button>
+            <button @click="activeTab = 'library'" class="bg-slate-800 text-slate-200 text-xs px-4 py-2 rounded-xl border border-slate-700 hover:bg-slate-700 transition">
+              从动作库挑选
+            </button>
+          </div>
+        </div>
+
+        <!-- 动作卡片列表 -->
+        <div v-for="(exercise, exIdx) in todayExercises" :key="exercise.id" class="glass-panel rounded-2xl p-4 border border-slate-800/80 transition hover:border-slate-700">
+          <!-- 卡片头部 -->
+          <div class="flex items-start justify-between pb-3 border-b border-slate-800/60">
+            <div>
+              <div class="flex items-center space-x-2 mb-1">
+                <span class="text-xs px-2 py-0.5 rounded-md font-medium" :class="exercise.category === 'volleyball_core' ? 'bg-orange-500/20 text-brand-orange' : (exercise.category === 'vertical_jump' ? 'bg-emerald-500/20 text-brand-volt' : 'bg-blue-500/20 text-brand-blue')">
+                  {{ exercise.categoryName }}
+                </span>
+                <span class="text-[11px] text-slate-400 bg-slate-900 px-2 py-0.5 rounded-md">{{ exercise.equipment }}</span>
+              </div>
+              <h3 class="text-base font-bold text-white">{{ exercise.name }}</h3>
+              <p class="text-xs text-slate-400 mt-0.5">{{ exercise.whyForVolleyball }}</p>
+            </div>
+            
+            <div class="flex items-center space-x-1">
+              <button @click="toggleAllSets(exercise)" class="text-[11px] bg-slate-800 text-brand-volt hover:bg-slate-700 px-2 py-1 rounded-lg border border-slate-700 transition">
+                一键打勾
+              </button>
+              <button @click="removeExercise(exIdx)" class="text-slate-500 hover:text-red-400 p-1 transition" title="移除动作">
+                ✕
+              </button>
+            </div>
+          </div>
+
+          <!-- 组数打卡表格 -->
+          <div class="mt-3 space-y-2">
+            <div class="grid grid-cols-12 gap-1 text-[11px] text-slate-500 px-2 font-medium">
+              <span class="col-span-2 text-center">组号</span>
+              <span class="col-span-4 text-center">重量 (kg)</span>
+              <span class="col-span-4 text-center">次数 (reps)</span>
+              <span class="col-span-2 text-center">完成</span>
+            </div>
+
+            <div v-for="(set, setIdx) in exercise.sets" :key="set.setNumber" class="grid grid-cols-12 gap-1 items-center bg-slate-950/40 p-2 rounded-xl border border-slate-800/40">
+              <span class="col-span-2 text-center font-num text-sm text-slate-400">#{{ set.setNumber }}</span>
+              
+              <!-- 重量输入 -->
+              <div class="col-span-4 flex items-center justify-center">
+                <input type="number" v-model.number="set.weight" class="w-16 bg-slate-900 border border-slate-700 text-white rounded-lg text-center text-xs py-1 focus:outline-none focus:border-brand-volt font-num">
+              </div>
+
+              <!-- 次数输入 -->
+              <div class="col-span-4 flex items-center justify-center">
+                <input type="number" v-model.number="set.reps" class="w-16 bg-slate-900 border border-slate-700 text-white rounded-lg text-center text-xs py-1 focus:outline-none focus:border-brand-volt font-num">
+              </div>
+
+              <!-- 打勾完成状态 -->
+              <div class="col-span-2 flex items-center justify-center">
+                <input type="checkbox" :checked="set.completed" @change="toggleSet(set)" class="custom-checkbox">
+              </div>
+            </div>
+
+            <!-- 添加/删除组按键 -->
+            <div class="flex items-center justify-between pt-1 px-1 text-xs">
+              <button @click="addSet(exercise)" class="text-brand-volt hover:underline flex items-center space-x-1">
+                <span>＋ 加一组</span>
+              </button>
+              <button v-if="exercise.sets.length > 1" @click="removeSet(exercise, exercise.sets.length - 1)" class="text-slate-500 hover:text-red-400">
+                <span>- 减末组</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 底部动作归档保存按键 -->
+      <div class="pt-4 flex items-center space-x-3">
+        <button @click="saveTodayAsLog" class="flex-1 bg-gradient-to-r from-brand-volt to-emerald-400 text-black font-extrabold text-sm py-3.5 rounded-2xl shadow-xl shadow-emerald-500/20 active:scale-95 transition flex items-center justify-center space-x-2">
+          <span>{{ planDateMode === 'tomorrow' ? '💾 保存明日预排计划' : '💾 保存并归档今日训练' }}</span>
+        </button>
+        <button @click="resetTodayPlan" class="bg-slate-900 border border-slate-800 text-slate-400 hover:text-red-400 p-3.5 rounded-2xl transition" title="清空今日重填">
+          🗑️
+        </button>
+      </div>
+
+    </main>
+
+    <!-- ==================== 2. 智能推荐视图 (SMART RECOMMENDATIONS) ==================== -->
+    <main v-if="activeTab === 'recommend'" class="space-y-4">
+      <div class="glass-panel rounded-2xl p-5 border border-slate-800">
+        <div class="flex items-center justify-between mb-3">
+          <span class="text-xs px-2.5 py-1 rounded-full font-bold" :class="recommendedWorkout.badgeColor === 'amber' ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' : 'bg-emerald-500/20 text-brand-volt border border-emerald-500/30'">
+            {{ recommendedWorkout.badge }}
+          </span>
+          <span class="text-xs text-slate-400">排球互补推荐引擎</span>
+        </div>
+
+        <h2 class="text-lg font-black text-white mb-2">{{ recommendedWorkout.title }}</h2>
+        <p class="text-xs text-slate-300 leading-relaxed mb-4 bg-slate-950/50 p-3 rounded-xl border border-slate-800/80">
+          {{ recommendedWorkout.reason }}
+        </p>
+
+        <div class="mb-4">
+          <span class="text-xs text-slate-400 block mb-1 font-medium">🎯 重点发展方向:</span>
+          <span class="text-xs text-brand-orange bg-orange-500/10 border border-orange-500/20 px-2.5 py-1 rounded-lg inline-block">
+            {{ recommendedWorkout.targetFocus }}
+          </span>
+        </div>
+
+        <button @click="applyRecommendation" class="w-full bg-brand-volt text-black font-extrabold text-sm py-3 rounded-xl shadow-lg shadow-emerald-500/20 active:scale-95 transition flex items-center justify-center space-x-1.5">
+          <span>⚡ 一键将此方案应用到今日计划</span>
+        </button>
+      </div>
+
+      <!-- 推荐训练动作详情清单 -->
+      <div class="space-y-3">
+        <h3 class="text-xs uppercase tracking-wider text-slate-400 font-bold px-1">方案动作明细：</h3>
+        <div v-for="item in recommendedWorkout.exercises" :key="item.exerciseId" class="glass-panel rounded-2xl p-4 border border-slate-800 flex items-center justify-between">
+          <div>
+            <div class="flex items-center space-x-2 mb-1">
+              <h4 class="text-sm font-bold text-white">{{ item.name }}</h4>
+              <span v-if="item.isCardio" class="text-[10px] bg-blue-500/20 text-brand-blue px-2 py-0.5 rounded">有氧</span>
+            </div>
+            <p class="text-xs text-slate-400">{{ item.note }}</p>
+          </div>
+          <div class="text-right pl-3">
+            <span v-if="!item.isCardio" class="font-num font-bold text-brand-volt text-sm block">
+              {{ item.sets }} 组 × {{ item.reps }} 次
+            </span>
+            <span v-else class="font-num font-bold text-brand-blue text-sm block">
+              {{ item.duration }} 分钟
+            </span>
+            <span v-if="!item.isCardio && item.weight > 0" class="text-[11px] text-slate-400">@ {{ item.weight }}kg</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 实时疲劳校准器 (调节滑块看推荐变化) -->
+      <div class="glass-panel rounded-2xl p-4 border border-slate-800">
+        <h3 class="text-xs font-bold text-slate-300 mb-2">实时疲劳校准 (调节以观察系统推荐的动态变化)</h3>
+        <div class="grid grid-cols-2 gap-4 text-xs">
+          <div>
+            <span class="text-slate-400 block mb-1.5">肩部状态 (1放松 - 5酸痛):</span>
+            <div class="flex space-x-1">
+              <span v-for="star in 5" :key="'rec_s'+star" @click="fatigue.shoulder = star" class="cursor-pointer text-xl" :class="star <= fatigue.shoulder ? 'text-amber-400' : 'text-slate-700'">★</span>
+            </div>
+          </div>
+          <div>
+            <span class="text-slate-400 block mb-1.5">膝盖状态 (1轻松 - 5劳损):</span>
+            <div class="flex space-x-1">
+              <span v-for="star in 5" :key="'rec_k'+star" @click="fatigue.knee = star" class="cursor-pointer text-xl" :class="star <= fatigue.knee ? 'text-amber-400' : 'text-slate-700'">★</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- ==================== 3. AI 饮食与营养相机视图 (NUTRITION) ==================== -->
+    <main v-if="activeTab === 'nutrition'" class="space-y-4">
+      
+      <!-- 能量天平与净热量收支大卡片 -->
+      <section class="glass-panel rounded-2xl p-5 border border-slate-800 relative overflow-hidden">
+        <div class="absolute -right-8 -top-8 w-36 h-36 bg-amber-500/10 rounded-full blur-2xl pointer-events-none"></div>
+        <div class="absolute -left-8 -bottom-8 w-36 h-36 bg-brand-volt/10 rounded-full blur-2xl pointer-events-none"></div>
+
+        <div class="flex items-center justify-between mb-3">
+          <div class="text-xs uppercase tracking-widest text-slate-400 font-bold flex items-center space-x-1.5">
+            <span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+            <span>今日能量天平 (摄入 vs 消耗)</span>
+          </div>
+          <span class="text-xs px-2.5 py-1 rounded-full font-bold" :class="netEnergyBalance.balance > 0 ? 'bg-emerald-500/20 text-brand-volt border border-emerald-500/30' : 'bg-orange-500/20 text-brand-orange border border-orange-500/30'">
+            {{ netEnergyBalance.statusText }}
+          </span>
+        </div>
+
+        <!-- 摄入 / 消耗 / 净额对比 -->
+        <div class="grid grid-cols-3 gap-2.5 text-center my-3">
+          <div class="bg-slate-950/60 p-3 rounded-xl border border-slate-800">
+            <span class="text-[11px] text-slate-400 block mb-0.5">🥗 饮食总摄入</span>
+            <span class="font-num text-2xl font-bold text-amber-400">{{ todayNutritionTotal.calories }}</span>
+            <span class="text-[10px] text-slate-500 block">kcal</span>
+          </div>
+          <div class="bg-slate-950/60 p-3 rounded-xl border border-slate-800">
+            <span class="text-[11px] text-slate-400 block mb-0.5">🔥 运动总消耗</span>
+            <span class="font-num text-2xl font-bold text-brand-volt">{{ todayTotalCalories }}</span>
+            <span class="text-[10px] text-slate-500 block">kcal</span>
+          </div>
+          <div class="bg-slate-950/60 p-3 rounded-xl border border-slate-800">
+            <span class="text-[11px] text-slate-400 block mb-0.5">⚖️ 净能量差额</span>
+            <span class="font-num text-2xl font-bold" :class="netEnergyBalance.balance >= 0 ? 'text-brand-volt' : 'text-brand-orange'">
+              {{ netEnergyBalance.balance >= 0 ? '+' + netEnergyBalance.balance : netEnergyBalance.balance }}
+            </span>
+            <span class="text-[10px] text-slate-500 block">kcal</span>
+          </div>
+        </div>
+
+        <!-- 三大营养素柱状条 -->
+        <div class="pt-2 border-t border-slate-800/80 grid grid-cols-3 gap-2 text-xs text-center">
+          <div class="bg-slate-900/40 p-2 rounded-lg">
+            <span class="text-slate-400 text-[10px] block">🍚 碳水化合物</span>
+            <span class="font-bold text-white font-num text-sm">{{ todayNutritionTotal.carbs }} g</span>
+          </div>
+          <div class="bg-slate-900/40 p-2 rounded-lg">
+            <span class="text-slate-400 text-[10px] block">🥩 优质蛋白质</span>
+            <span class="font-bold text-amber-400 font-num text-sm">{{ todayNutritionTotal.protein }} g</span>
+          </div>
+          <div class="bg-slate-900/40 p-2 rounded-lg">
+            <span class="text-slate-400 text-[10px] block">🥑 健康脂肪</span>
+            <span class="font-bold text-slate-300 font-num text-sm">{{ todayNutritionTotal.fat }} g</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- AI 识别输入核心卡片 -->
+      <section class="glass-panel rounded-2xl p-5 border border-slate-800 space-y-4">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center space-x-2">
+            <span class="text-2xl">📸</span>
+            <div>
+              <h2 class="text-base font-bold text-white">AI 智能营养相机与识别</h2>
+              <p class="text-xs text-slate-400">拍照或文字描述，秒测热量与排球运动营养点评</p>
+            </div>
+          </div>
+          <button @click="jumpToWebGemini" class="text-xs bg-slate-800 hover:bg-slate-700 text-brand-orange border border-orange-500/30 px-2.5 py-1.5 rounded-xl transition flex items-center space-x-1" title="免Key跳转到 Gemini 网页版">
+            <span>🌐 网页端分析</span>
+          </button>
+        </div>
+
+        <!-- 图片上传与预览区域 -->
+        <div>
+          <div v-if="!mealImageBase64" class="border-2 border-dashed border-slate-700 hover:border-amber-400/80 rounded-2xl p-6 text-center cursor-pointer transition bg-slate-950/40 relative">
+            <input type="file" accept="image/*" @change="onMealImageSelected" class="absolute inset-0 opacity-0 cursor-pointer">
+            <span class="text-3xl block mb-1">📷</span>
+            <span class="text-xs font-bold text-slate-300 block">点击拍照 或 从相册上传餐食图片</span>
+            <span class="text-[10px] text-slate-500 mt-0.5 block">支持手机拍照与相册直传</span>
+          </div>
+
+          <div v-else class="relative rounded-2xl overflow-hidden border border-slate-700 max-h-56 bg-black flex items-center justify-center">
+            <img :src="mealImageBase64" alt="餐食预览" class="max-h-56 w-auto object-contain">
+            <button @click="clearMealImage" class="absolute top-2 right-2 bg-black/70 hover:bg-black text-white rounded-full w-7 h-7 flex items-center justify-center text-xs">
+              ✕
+            </button>
+          </div>
+        </div>
+
+        <!-- 食材文字补充描述 -->
+        <div>
+          <label class="text-xs text-slate-300 font-medium block mb-1.5">补充食材名称或份量（可自由修改）：</label>
+          <input type="text" v-model="mealTextDescription" placeholder="例如：燕麦40g + 水牛奶200ml + 香蕉1根 + 坚果15g" class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:border-amber-400 placeholder-slate-500">
+        </div>
+
+        <!-- 识别按键组 -->
+        <div class="grid grid-cols-2 gap-3 pt-1">
+          <button @click="triggerAnalyzeMeal" :disabled="isAnalyzingMeal" class="bg-gradient-to-r from-amber-400 to-yellow-500 text-black font-extrabold text-xs py-3 rounded-xl shadow-lg shadow-amber-500/20 active:scale-95 transition flex items-center justify-center space-x-1.5">
+            <span v-if="isAnalyzingMeal" class="animate-spin">⏳</span>
+            <span v-else>⚡</span>
+            <span>{{ isAnalyzingMeal ? 'AI 正在计算营养...' : '启动 AI 智能识别测算' }}</span>
+          </button>
+          <button @click="showPasteAiModal = true" class="bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs py-3 rounded-xl border border-slate-700 transition">
+            📝 粘贴网页 AI 结果录入
+          </button>
+        </div>
+
+        <!-- API 密钥折叠微调 -->
+        <details class="text-[11px] text-slate-500 pt-1">
+          <summary class="cursor-pointer hover:text-slate-300">⚙️ Gemini API 密钥设置（系统已预填你的专属 Key）</summary>
+          <div class="pt-2 space-y-1">
+            <input type="text" v-model="geminiApiKey" placeholder="输入 Gemini API Key" class="w-full bg-slate-950 border border-slate-800 text-slate-300 rounded-lg px-3 py-1.5 text-xs font-mono">
+            <p class="text-[10px] text-slate-500">已自动搭载你的 AI Studio Key。若遭遇 Google API 高负荷，系统会自动无缝切换至内置高精度营养引擎。</p>
+          </div>
+        </details>
+      </section>
+
+      <!-- AI 营养识别结果详情卡片 -->
+      <section v-if="mealAnalysisResult" class="glass-panel rounded-2xl p-5 border border-amber-500/40 relative space-y-4 shadow-xl">
+        <div class="flex items-start justify-between">
+          <div>
+            <span class="text-[10px] bg-amber-500/20 text-amber-400 border border-amber-500/30 px-2.5 py-0.5 rounded-full font-bold">
+              AI 营养分析就绪
+            </span>
+            <h3 class="text-base font-extrabold text-white mt-1">{{ mealAnalysisResult.dishName }}</h3>
+            <span class="text-xs text-slate-400">总重量预估：{{ mealAnalysisResult.estimatedWeight }}</span>
+          </div>
+
+          <div class="text-right">
+            <span class="font-num text-4xl font-extrabold text-amber-400 leading-none">{{ mealAnalysisResult.calories }}</span>
+            <span class="text-xs text-amber-400 font-bold block">KCAL</span>
+          </div>
+        </div>
+
+        <!-- 四大营养素卡片 -->
+        <div class="grid grid-cols-4 gap-2 text-center text-xs">
+          <div class="bg-slate-900/60 p-2.5 rounded-xl border border-slate-800">
+            <span class="text-[10px] text-slate-400 block mb-0.5">碳水化合物</span>
+            <span class="font-num text-lg font-bold text-white">{{ mealAnalysisResult.carbs }}<span class="text-[10px]">g</span></span>
+          </div>
+          <div class="bg-slate-900/60 p-2.5 rounded-xl border border-slate-800">
+            <span class="text-[10px] text-slate-400 block mb-0.5">蛋白质</span>
+            <span class="font-num text-lg font-bold text-amber-400">{{ mealAnalysisResult.protein }}<span class="text-[10px]">g</span></span>
+          </div>
+          <div class="bg-slate-900/60 p-2.5 rounded-xl border border-slate-800">
+            <span class="text-[10px] text-slate-400 block mb-0.5">脂肪</span>
+            <span class="font-num text-lg font-bold text-slate-300">{{ mealAnalysisResult.fat }}<span class="text-[10px]">g</span></span>
+          </div>
+          <div class="bg-slate-900/60 p-2.5 rounded-xl border border-slate-800">
+            <span class="text-[10px] text-slate-400 block mb-0.5">膳食纤维</span>
+            <span class="font-num text-lg font-bold text-brand-volt">{{ mealAnalysisResult.fiber || 5 }}<span class="text-[10px]">g</span></span>
+          </div>
+        </div>
+
+        <!-- 排球专项运动营养点评 -->
+        <div class="bg-amber-950/20 border border-amber-500/20 p-3.5 rounded-xl text-xs space-y-1">
+          <span class="font-bold text-amber-400 flex items-center space-x-1.5">
+            <span>🏐</span>
+            <span>排球体能与力量专项营养建议</span>
+          </span>
+          <p class="text-slate-200 text-[11px] leading-relaxed">
+            {{ mealAnalysisResult.volleyballAdvice }}
+          </p>
+        </div>
+
+        <!-- 细分食材标签 -->
+        <div v-if="mealAnalysisResult.ingredients && mealAnalysisResult.ingredients.length" class="flex flex-wrap gap-1.5">
+          <span v-for="(ing, idx) in mealAnalysisResult.ingredients" :key="idx" class="text-[11px] bg-slate-900 border border-slate-800 text-slate-300 px-2 py-1 rounded-lg">
+            {{ ing }}
+          </span>
+        </div>
+
+        <!-- 一键记入今日摄入按钮 -->
+        <button @click="logMealToToday(mealAnalysisResult)" class="w-full bg-brand-volt text-black font-extrabold text-xs py-3 rounded-xl shadow-lg shadow-emerald-500/20 active:scale-95 transition flex items-center justify-center space-x-2">
+          <span>＋ 记入今日饮食清单并计入能量天平</span>
+        </button>
+      </section>
+
+      <!-- 今日已记录饮食列表 -->
+      <section class="space-y-3">
+        <div class="flex items-center justify-between px-1">
+          <h3 class="text-xs uppercase tracking-wider text-slate-400 font-bold">今日饮食摄入记录 ({{ todayMeals.length }} 餐)：</h3>
+        </div>
+
+        <div v-if="todayMeals.length === 0" class="glass-panel rounded-2xl p-6 text-center text-xs text-slate-500 border border-slate-800">
+          今日尚未记录任何餐食。点击上方拍照或输入食材，即可由 AI 测算并记入。
+        </div>
+
+        <div v-for="(meal, mIdx) in todayMeals" :key="meal.id" class="glass-panel rounded-2xl p-3.5 border border-slate-800 flex items-center justify-between">
+          <div>
+            <div class="flex items-center space-x-2 mb-0.5">
+              <span class="text-xs text-slate-400 font-mono">{{ meal.time }}</span>
+              <h4 class="text-sm font-bold text-white">{{ meal.dishName }}</h4>
+            </div>
+            <div class="flex items-center space-x-2 text-[11px] text-slate-400">
+              <span>碳水 {{ meal.carbs }}g</span>
+              <span>•</span>
+              <span class="text-amber-400 font-medium">蛋白 {{ meal.protein }}g</span>
+              <span>•</span>
+              <span>脂肪 {{ meal.fat }}g</span>
+            </div>
+          </div>
+
+          <div class="flex items-center space-x-3">
+            <span class="font-num font-bold text-amber-400 text-lg">{{ meal.calories }} <span class="text-[10px]">kcal</span></span>
+            <button @click="removeMeal(mIdx)" class="text-slate-500 hover:text-red-400 text-xs p-1">✕</button>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- ==================== 4. 动作库视图 (EXERCISE LIBRARY) ==================== -->
+    <main v-if="activeTab === 'library'" class="space-y-4">
+      <!-- 搜索与筛选器 -->
+      <div class="glass-panel rounded-2xl p-4 border border-slate-800 space-y-3">
+        <!-- 搜索输入框 -->
+        <div class="relative">
+          <input type="text" v-model="librarySearch" placeholder="搜索动作名称、肌肉、排球价值..." class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:border-brand-volt placeholder-slate-500">
+          <span v-if="librarySearch" @click="librarySearch = ''" class="absolute right-3 top-2.5 text-slate-400 cursor-pointer text-xs">✕</span>
+        </div>
+
+        <!-- 分类切换标签 -->
+        <div class="flex items-center space-x-1.5 overflow-x-auto no-scrollbar pb-1 text-xs">
+          <button @click="libraryCategory = 'all'" :class="libraryCategory === 'all' ? 'bg-brand-volt text-black font-bold' : 'bg-slate-900 text-slate-300 border border-slate-800'" class="px-3 py-1.5 rounded-xl whitespace-nowrap transition">全部</button>
+          <button @click="libraryCategory = 'volleyball_core'" :class="libraryCategory === 'volleyball_core' ? 'bg-brand-orange text-black font-bold' : 'bg-slate-900 text-slate-300 border border-slate-800'" class="px-3 py-1.5 rounded-xl whitespace-nowrap transition">🏐 扣球核心</button>
+          <button @click="libraryCategory = 'vertical_jump'" :class="libraryCategory === 'vertical_jump' ? 'bg-brand-volt text-black font-bold' : 'bg-slate-900 text-slate-300 border border-slate-800'" class="px-3 py-1.5 rounded-xl whitespace-nowrap transition">⚡ 垂直弹跳</button>
+          <button @click="libraryCategory = 'chest'" :class="libraryCategory === 'chest' ? 'bg-brand-blue text-black font-bold' : 'bg-slate-900 text-slate-300 border border-slate-800'" class="px-3 py-1.5 rounded-xl whitespace-nowrap transition">胸部力量</button>
+          <button @click="libraryCategory = 'back'" :class="libraryCategory === 'back' ? 'bg-brand-blue text-black font-bold' : 'bg-slate-900 text-slate-300 border border-slate-800'" class="px-3 py-1.5 rounded-xl whitespace-nowrap transition">背部拉力</button>
+          <button @click="libraryCategory = 'shoulder'" :class="libraryCategory === 'shoulder' ? 'bg-brand-blue text-black font-bold' : 'bg-slate-900 text-slate-300 border border-slate-800'" class="px-3 py-1.5 rounded-xl whitespace-nowrap transition">肩部推举与肩袖</button>
+          <button @click="libraryCategory = 'legs'" :class="libraryCategory === 'legs' ? 'bg-brand-blue text-black font-bold' : 'bg-slate-900 text-slate-300 border border-slate-800'" class="px-3 py-1.5 rounded-xl whitespace-nowrap transition">下肢力量</button>
+          <button @click="libraryCategory = 'cardio'" :class="libraryCategory === 'cardio' ? 'bg-brand-blue text-black font-bold' : 'bg-slate-900 text-slate-300 border border-slate-800'" class="px-3 py-1.5 rounded-xl whitespace-nowrap transition">爬坡与有氧</button>
+        </div>
+
+        <!-- 器械环境筛选 -->
+        <div class="flex items-center space-x-1.5 text-xs text-slate-400">
+          <span>器械筛选:</span>
+          <select v-model="libraryEquipment" class="bg-slate-900 border border-slate-700 text-white rounded-lg px-2 py-1 text-xs focus:outline-none">
+            <option value="all">所有器械</option>
+            <option value="龙门架">龙门架 / 绳索</option>
+            <option value="杠铃">杠铃</option>
+            <option value="哑铃">哑铃</option>
+            <option value="弹力带">弹力带</option>
+            <option value="自重">自重</option>
+            <option value="爬坡机">爬坡跑步机</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- 动作卡片清单 -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div v-for="ex in filteredExercises" :key="ex.id" class="glass-panel rounded-2xl p-4 border border-slate-800 flex flex-col justify-between hover:border-slate-700 transition">
+          <div>
+            <div class="flex items-center justify-between mb-1.5">
+              <span class="text-[11px] px-2 py-0.5 rounded font-medium" :class="ex.category === 'volleyball_core' ? 'bg-orange-500/20 text-brand-orange' : (ex.category === 'vertical_jump' ? 'bg-emerald-500/20 text-brand-volt' : 'bg-blue-500/20 text-brand-blue')">
+                {{ ex.categoryName }}
+              </span>
+              <span class="text-[11px] text-slate-400 bg-slate-900 px-2 py-0.5 rounded">{{ ex.equipment }}</span>
+            </div>
+            <h3 class="text-sm font-bold text-white mb-1">{{ ex.name }}</h3>
+            
+            <p class="text-xs text-brand-volt/90 font-medium mb-1">
+              🏐 {{ ex.whyForVolleyball }}
+            </p>
+            <p class="text-[11px] text-slate-400 line-clamp-2 mb-3">
+              💡 要领: {{ ex.tips }}
+            </p>
+          </div>
+
+          <div class="pt-2 border-t border-slate-800/80 flex items-center justify-between">
+            <span class="text-[11px] text-slate-500">目标: {{ ex.targetMuscle }}</span>
+            <button v-if="!ex.id.startsWith('volleyball_') && ex.id !== 'incline_treadmill'" @click="addExerciseToToday(ex)" class="bg-slate-800 hover:bg-brand-volt hover:text-black text-brand-volt text-xs px-3 py-1.5 rounded-xl border border-slate-700 transition font-bold">
+              ＋ 加入今日
+            </button>
+            <span v-else class="text-[11px] text-brand-orange">在今日计划中直接开启</span>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- ==================== 4. 历史与能耗统计 (HISTORY & ANALYTICS) ==================== -->
+    <main v-if="activeTab === 'history'" class="space-y-4">
+      <div class="glass-panel rounded-2xl p-5 border border-slate-800">
+        <h2 class="text-sm font-bold text-slate-200 mb-3 flex items-center space-x-1.5">
+          <span>📊</span>
+          <span>历史训练与能耗累计</span>
+        </h2>
+
+        <div class="grid grid-cols-3 gap-3 text-center">
+          <div class="bg-slate-950/60 p-3 rounded-xl border border-slate-800">
+            <span class="text-xs text-slate-400 block mb-1">总归档次数</span>
+            <span class="font-num text-2xl font-bold text-white">{{ historyLogs.length }}</span>
+          </div>
+          <div class="bg-slate-950/60 p-3 rounded-xl border border-slate-800">
+            <span class="text-xs text-slate-400 block mb-1">总消耗能量</span>
+            <span class="font-num text-2xl font-bold text-brand-volt">
+              {{ historyLogs.reduce((acc, cur) => acc + (cur.totalCalories || 0), 0).toLocaleString() }}
+              <span class="text-[10px]">kcal</span>
+            </span>
+          </div>
+          <div class="bg-slate-950/60 p-3 rounded-xl border border-slate-800">
+            <span class="text-xs text-slate-400 block mb-1">总搬运吨位</span>
+            <span class="font-num text-2xl font-bold text-brand-orange">
+              {{ (historyLogs.reduce((acc, cur) => acc + (cur.totalVolume || 0), 0) / 1000).toFixed(1) }}
+              <span class="text-[10px]">吨</span>
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 历史记录卡片列表 -->
+      <div class="space-y-3">
+        <h3 class="text-xs uppercase tracking-wider text-slate-400 font-bold px-1">过往训练日志：</h3>
+        <div v-if="historyLogs.length === 0" class="glass-panel rounded-2xl p-8 text-center text-xs text-slate-500 border border-slate-800">
+          暂无历史归档记录。完成今日训练后点击“保存并归档今日训练”即可在此查看。
+        </div>
+
+        <div v-for="log in historyLogs" :key="log.id" class="glass-panel rounded-2xl p-4 border border-slate-800 space-y-2">
+          <div class="flex items-center justify-between border-b border-slate-800/60 pb-2">
+            <span class="text-xs font-bold text-white">{{ log.date }}</span>
+            <div class="flex items-center space-x-2">
+              <span class="text-xs font-num font-bold text-brand-volt">{{ log.totalCalories }} kcal</span>
+              <span class="text-[11px] text-slate-400">负荷 {{ (log.totalVolume || 0).toLocaleString() }}kg</span>
+            </div>
+          </div>
+
+          <div class="flex flex-wrap gap-1.5 pt-1">
+            <span v-if="log.volleyball" class="text-[11px] bg-orange-500/20 text-brand-orange px-2 py-0.5 rounded-md">
+              🏐 排球 {{ log.volleyball.duration }}分 ({{ log.volleyball.intensity === 'competitive' ? '比赛' : '传扣' }})
+            </span>
+            <span v-if="log.treadmill" class="text-[11px] bg-blue-500/20 text-brand-blue px-2 py-0.5 rounded-md">
+              🧗 爬坡 {{ log.treadmill.duration }}分 ({{ log.treadmill.incline }}%坡 / {{ log.treadmill.speed }}km/h)
+            </span>
+            <span v-for="ex in log.exercises" :key="ex.id" class="text-[11px] bg-slate-800 text-slate-300 px-2 py-0.5 rounded-md">
+              {{ ex.name }} ({{ ex.sets ? ex.sets.length : 0 }}组)
+            </span>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- ==================== 5. 同步与设置视图 (SYNC & SETTINGS) ==================== -->
+    <main v-if="activeTab === 'sync'" class="space-y-4">
+      
+      <!-- 6 位口令跨网络云同步核心卡片 -->
+      <div class="glass-panel rounded-2xl p-5 border border-slate-800 space-y-4">
+        <div>
+          <h2 class="text-base font-bold text-white mb-1">☁️ 跨网络免登录云同步</h2>
+          <p class="text-xs text-slate-400 leading-relaxed">
+            手机在球场用 5G，电脑在家里连 Wi-Fi，只要使用相同的 6 位口令即可随时随地双向同步，无需注册账号！
+          </p>
+        </div>
+
+        <!-- 本机口令展示 -->
+        <div class="bg-slate-950/80 p-4 rounded-xl border border-slate-800 flex items-center justify-between">
+          <div>
+            <span class="text-xs text-slate-400 block mb-1">你的专属同步口令：</span>
+            <span class="font-num text-3xl font-bold tracking-widest text-brand-volt">{{ syncCode }}</span>
+          </div>
+          <button @click="copySyncCode" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs px-3.5 py-2 rounded-xl border border-slate-700 transition">
+            复制口令
+          </button>
+        </div>
+
+        <!-- 云端操作按键 -->
+        <div class="grid grid-cols-2 gap-3">
+          <button @click="pushSync" class="bg-brand-volt text-black font-extrabold text-xs py-3 rounded-xl shadow-lg shadow-emerald-500/20 active:scale-95 transition">
+            ⬆️ 上传并保存到云端
+          </button>
+          <button @click="pullSync" class="bg-slate-800 hover:bg-slate-700 text-brand-volt font-bold text-xs py-3 rounded-xl border border-slate-700 transition">
+            ⬇️ 从云端拉取最新数据
+          </button>
+        </div>
+
+        <!-- 连接另一台设备口令 -->
+        <div class="pt-3 border-t border-slate-800/80">
+          <label class="text-xs text-slate-300 block mb-1.5 font-medium">接入其他设备（在手机/电脑输入对方口令）：</label>
+          <div class="flex space-x-2">
+            <input type="text" v-model="inputSyncCode" placeholder="输入 6 位口令 (如 8K9B2A)" class="flex-1 bg-slate-900 border border-slate-700 text-white rounded-xl px-3 py-2 text-xs uppercase tracking-widest font-mono focus:outline-none focus:border-brand-volt">
+            <button @click="pullSync" class="bg-brand-orange text-black font-bold text-xs px-4 py-2 rounded-xl active:scale-95 transition">
+              连接拉取
+            </button>
+          </div>
+        </div>
+
+        <p v-if="syncStatus.message" class="text-xs font-medium" :class="syncStatus.type === 'success' ? 'text-brand-volt' : (syncStatus.type === 'error' ? 'text-red-400' : 'text-slate-400')">
+          {{ syncStatus.message }}
+        </p>
+      </div>
+
+      <!-- 个人生理参数设置 (影响卡路里计算精准度) -->
+      <div class="glass-panel rounded-2xl p-5 border border-slate-800 space-y-4">
+        <h2 class="text-sm font-bold text-white">⚙️ 个人能耗参数设置</h2>
+        
+        <div>
+          <div class="flex justify-between text-xs text-slate-300 mb-1">
+            <span>体重设置 (用于精确计算爬坡与排球能耗):</span>
+            <span class="text-brand-volt font-bold font-num text-sm">{{ userProfile.weight }} kg</span>
+          </div>
+          <input type="range" min="45" max="120" step="1" v-model.number="userProfile.weight" @change="saveState" class="w-full accent-brand-volt cursor-pointer">
+        </div>
+
+        <div>
+          <div class="flex justify-between text-xs text-slate-300 mb-1">
+            <span>每周排球运动预期频次:</span>
+            <span class="text-brand-orange font-bold font-num text-sm">{{ userProfile.weeklyVolleyballTarget }} 天/周</span>
+          </div>
+          <input type="range" min="1" max="7" step="1" v-model.number="userProfile.weeklyVolleyballTarget" @change="saveState" class="w-full accent-brand-orange cursor-pointer">
+        </div>
+      </div>
+
+      <!-- 备份与恢复 (JSON) -->
+      <div class="glass-panel rounded-2xl p-5 border border-slate-800 space-y-3">
+        <h2 class="text-sm font-bold text-white">📁 本地数据备份与恢复 (离线私密)</h2>
+        <p class="text-xs text-slate-400">数据 100% 保存在你的浏览器中，完全不依赖任何第三方服务器。</p>
+        <div class="flex space-x-3 pt-1">
+          <button @click="exportBackupFile" class="flex-1 bg-slate-900 border border-slate-700 text-slate-300 hover:text-white text-xs py-2.5 rounded-xl transition">
+            导出备份文件 (JSON)
+          </button>
+          <label class="flex-1 bg-slate-900 border border-slate-700 text-slate-300 hover:text-white text-xs py-2.5 rounded-xl text-center cursor-pointer transition">
+            导入恢复备份
+            <input type="file" accept=".json" @change="importBackupFile" class="hidden">
+          </label>
+        </div>
+      </div>
+
+      <!-- PWA 添加到主屏幕说明 -->
+      <div class="glass-panel rounded-2xl p-4 border border-slate-800/80 bg-slate-950/40 text-xs text-slate-400 space-y-1.5">
+        <h3 class="font-bold text-slate-300">📱 如何在手机上以原生 App 全屏使用？</h3>
+        <p>1. <strong>苹果 iOS Safari</strong>: 点击浏览器底部的“分享”按钮 ➔ 选择“添加到主屏幕”。</p>
+        <p>2. <strong>安卓 Chrome / 手机浏览器</strong>: 点击右上角菜单“...” ➔ 选择“添加到主屏幕”或“安装应用”。</p>
+        <p class="text-brand-volt">添加到桌面后，将像原生 App 一样全屏显示，无任何网址栏干扰，且支持离线打开！</p>
+      </div>
+
+    </main>
+
+    <!-- ==================== 移动端底部固定导航栏 ==================== -->
+    <nav class="md:hidden fixed bottom-0 left-0 right-0 glass-panel border-t border-slate-800/80 px-2 py-2 flex justify-around items-center z-50">
+      <button @click="activeTab = 'today'" class="flex flex-col items-center py-1 px-2.5 rounded-xl transition" :class="activeTab === 'today' ? 'text-brand-volt' : 'text-slate-500'">
+        <span class="text-lg">📋</span>
+        <span class="text-[10px] font-bold mt-0.5">今日计划</span>
+      </button>
+      <button @click="activeTab = 'recommend'" class="flex flex-col items-center py-1 px-2 rounded-xl transition" :class="activeTab === 'recommend' ? 'text-brand-orange' : 'text-slate-500'">
+        <span class="text-lg">💡</span>
+        <span class="text-[10px] font-bold mt-0.5">智能推荐</span>
+      </button>
+      <button @click="activeTab = 'nutrition'" class="flex flex-col items-center py-1 px-2 rounded-xl transition" :class="activeTab === 'nutrition' ? 'text-amber-400' : 'text-slate-500'">
+        <span class="text-lg">🥗</span>
+        <span class="text-[10px] font-bold mt-0.5">AI营养</span>
+      </button>
+      <button @click="activeTab = 'library'" class="flex flex-col items-center py-1 px-2 rounded-xl transition" :class="activeTab === 'library' ? 'text-brand-blue' : 'text-slate-500'">
+        <span class="text-lg">📚</span>
+        <span class="text-[10px] font-bold mt-0.5">动作库</span>
+      </button>
+      <button @click="activeTab = 'history'" class="flex flex-col items-center py-1 px-2.5 rounded-xl transition" :class="activeTab === 'history' ? 'text-white' : 'text-slate-500'">
+        <span class="text-lg">📈</span>
+        <span class="text-[10px] font-bold mt-0.5">历史能耗</span>
+      </button>
+      <button @click="activeTab = 'sync'" class="flex flex-col items-center py-1 px-2.5 rounded-xl transition" :class="activeTab === 'sync' ? 'text-brand-volt' : 'text-slate-500'">
+        <span class="text-lg">⚙️</span>
+        <span class="text-[10px] font-bold mt-0.5">同步</span>
+      </button>
+    </nav>
+
+    <!-- 手机扫码弹窗 -->
+    <div v-if="showQrModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+      <div class="glass-panel rounded-3xl p-6 max-w-sm w-full border border-slate-700 text-center relative shadow-2xl">
+        <button @click="showQrModal = false" class="absolute right-4 top-4 text-slate-400 hover:text-white text-lg p-1">
+          ✕
+        </button>
+        <div class="w-12 h-12 rounded-2xl bg-brand-volt/20 text-brand-volt flex items-center justify-center mx-auto mb-3 text-2xl">
+          📱
+        </div>
+        <h3 class="text-base font-bold text-white mb-1">手机扫码极速打开</h3>
+        <p class="text-xs text-slate-400 mb-4">用手机相机或微信扫一扫，即可在手机浏览器中打开并保存到桌面！</p>
+        
+        <!-- 二维码图片展示 -->
+        <div class="bg-white p-3 rounded-2xl inline-block shadow-lg mb-3">
+          <img :src="qrCodeImageUrl" alt="扫码打开" class="w-48 h-48 block mx-auto">
+        </div>
+
+        <div class="bg-slate-950/80 p-2.5 rounded-xl border border-slate-800 text-left mb-4">
+          <span class="text-[10px] text-slate-500 block mb-0.5">手机同 Wi-Fi 访问地址：</span>
+          <span class="text-xs font-mono text-brand-volt break-all select-all font-bold">{{ mobileLanUrl }}</span>
+        </div>
+
+        <div class="text-[11px] text-slate-400 text-left space-y-1 bg-slate-900/50 p-2.5 rounded-xl">
+          <p>💡 <strong>手机桌面 App 体验：</strong></p>
+          <p>• 苹果 iPhone：在 Safari 打开后点底部分享 ➔ “添加到主屏幕”。</p>
+          <p>• 安卓手机：在浏览器菜单中点“添加到桌面”。</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 粘贴网页端 AI 结果录入弹窗 -->
+    <div v-if="showPasteAiModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+      <div class="glass-panel rounded-3xl p-6 max-w-md w-full border border-slate-700 relative shadow-2xl space-y-3">
+        <button @click="showPasteAiModal = false" class="absolute right-4 top-4 text-slate-400 hover:text-white text-lg p-1">
+          ✕
+        </button>
+        <div class="flex items-center space-x-2">
+          <span class="text-2xl">📝</span>
+          <h3 class="text-base font-bold text-white">粘贴网页端 AI 分析结果</h3>
+        </div>
+        <p class="text-xs text-slate-400">将你在 Gemini、豆包或 Kimi 网页端得到的营养回答全文粘贴在此处，系统将自动智能提取热量与三大营养素：</p>
+        
+        <textarea v-model="pastedAiText" rows="6" placeholder="把 AI 的回答整段粘贴到这里，例如：&#10;这顿餐食总热量约为 480 kcal，其中碳水化合物 65g，蛋白质 18g，脂肪 14g..." class="w-full bg-slate-900 border border-slate-700 text-slate-200 rounded-xl p-3 text-xs focus:outline-none focus:border-amber-400 placeholder-slate-600 font-mono"></textarea>
+
+        <div class="flex space-x-3 pt-1">
+          <button @click="applyPastedAiResult" class="flex-1 bg-amber-400 hover:bg-amber-300 text-black font-extrabold text-xs py-2.5 rounded-xl transition">
+            确认自动解析并录入
+          </button>
+          <button @click="showPasteAiModal = false" class="bg-slate-800 text-slate-400 text-xs px-4 py-2.5 rounded-xl">
+            取消
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 浮动通知 Toast -->
+    <div v-if="toast.show" class="fixed top-6 left-1/2 -translate-x-1/2 bg-slate-900 border border-brand-volt text-white px-4 py-2.5 rounded-2xl shadow-2xl z-50 text-xs font-bold flex items-center space-x-2 animate-bounce">
+      <span class="text-brand-volt">✓</span>
+      <span>{{ toast.message }}</span>
+    </div>
+
+  </div>
+
+  <!-- 引入业务核心模块 -->
+  <script src="./js/exercises.js"></script>
+  <script src="./js/calculator.js"></script>
+  <script src="./js/recommender.js"></script>
+  <script src="./js/nutrition.js"></script>
+  <script src="./js/sync.js"></script>
+  <script src="./js/app.js"></script>
+</body>
+</html>

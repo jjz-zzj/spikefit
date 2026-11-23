@@ -1,0 +1,4 @@
+__pycache__/
+*.pyc
+local_sync_store.json
+bundle.tar.gz
