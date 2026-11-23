@@ -36,11 +36,16 @@
     }
   </script>
 
+  <!-- 缓存控制 (确保发布新功能后即刻生效) -->
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+
   <!-- Vue 3 CDN -->
   <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
   
   <!-- 定制样式 -->
-  <link rel="stylesheet" href="./css/custom.css">
+  <link rel="stylesheet" href="./css/custom.css?v=20261124_03">
 </head>
 <body class="bg-brand-dark text-slate-100 min-h-screen pb-24 md:pb-10 selection:bg-brand-volt selection:text-black">
   <div id="app" v-cloak class="max-w-4xl mx-auto px-3 sm:px-6 pt-4">
@@ -1242,6 +1247,25 @@
         </div>
       </div>
 
+      <!-- 版本更新与缓存重置 (避免旧缓存遮挡新功能) -->
+      <div class="glass-panel rounded-2xl p-4 border border-slate-800 space-y-2.5">
+        <div class="flex items-center justify-between">
+          <h2 class="text-xs font-bold text-white flex items-center space-x-1.5">
+            <span>🔄</span>
+            <span>版本更新与离线缓存</span>
+          </h2>
+          <span class="text-[10px] text-brand-volt font-mono font-bold bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+            v2.0 (含日历与BMR)
+          </span>
+        </div>
+        <p class="text-[11px] text-slate-400 leading-relaxed">
+          若浏览器因 Service Worker 缓存未及时展示最新日历功能，点击下方按钮将彻底清除本地旧缓存并从 GitHub 重新拉取最新前端代码：
+        </p>
+        <button @click="forceClearCacheAndReload" class="w-full bg-slate-900 hover:bg-slate-800 border border-brand-volt/50 text-brand-volt text-xs font-bold py-2.5 rounded-xl transition flex items-center justify-center space-x-1.5 shadow-lg active:scale-95">
+          <span>🧹 强制清理旧缓存并刷新至最新版本</span>
+        </button>
+      </div>
+
       <!-- PWA 添加到主屏幕说明 -->
       <div class="glass-panel rounded-2xl p-4 border border-slate-800/80 bg-slate-950/40 text-xs text-slate-400 space-y-1.5">
         <h3 class="font-bold text-slate-300">📱 如何在手机上以原生 App 全屏使用？</h3>
@@ -1347,12 +1371,12 @@
 
   </div>
 
-  <!-- 引入业务核心模块 -->
-  <script src="./js/exercises.js"></script>
-  <script src="./js/calculator.js"></script>
-  <script src="./js/recommender.js"></script>
-  <script src="./js/nutrition.js"></script>
-  <script src="./js/sync.js"></script>
-  <script src="./js/app.js"></script>
+  <!-- 引入业务核心模块 (含版本更新防缓存时间戳) -->
+  <script src="./js/exercises.js?v=20261124_03"></script>
+  <script src="./js/calculator.js?v=20261124_03"></script>
+  <script src="./js/recommender.js?v=20261124_03"></script>
+  <script src="./js/nutrition.js?v=20261124_03"></script>
+  <script src="./js/sync.js?v=20261124_03"></script>
+  <script src="./js/app.js?v=20261124_03"></script>
 </body>
 </html>

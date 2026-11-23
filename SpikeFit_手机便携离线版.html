@@ -36,116 +36,16 @@
     }
   </script>
 
+  <!-- 缓存控制 (确保发布新功能后即刻生效) -->
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+
   <!-- Vue 3 CDN -->
   <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
   
   <!-- 定制样式 -->
-  <style>
-/* SpikeFit 运动科技暗黑风定制样式 */
-@import url('https://fonts.googleapis.com/css2?family=Teko:wght@500;700&family=Noto+Sans+SC:wght@400;500;700;900&display=swap');
-
-:root {
-  --bg-main: #0a0e17;
-  --card-bg: #131b2e;
-  --card-border: #1e293b;
-  --accent-green: #10b981;
-  --accent-volt: #00f59b;
-  --accent-orange: #f97316;
-  --accent-blue: #38bdf8;
-}
-
-body {
-  background-color: var(--bg-main);
-  color: #f1f5f9;
-  font-family: 'Noto Sans SC', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -webkit-tap-highlight-color: transparent;
-  user-select: none;
-}
-
-.font-num {
-  font-family: 'Teko', sans-serif;
-  letter-spacing: 0.5px;
-}
-
-/* 玻璃拟态与发光效果 */
-.glass-panel {
-  background: rgba(19, 27, 46, 0.85);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-.glow-green {
-  box-shadow: 0 0 25px -5px rgba(0, 245, 155, 0.3);
-}
-
-.glow-orange {
-  box-shadow: 0 0 25px -5px rgba(249, 115, 22, 0.35);
-}
-
-/* 柔和滚动条 */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-
-::-webkit-scrollbar-track {
-  background: #0a0e17;
-}
-
-::-webkit-scrollbar-thumb {
-  background: #334155;
-  border-radius: 9999px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: #475569;
-}
-
-/* 移动端触摸反馈与动效 */
-.touch-active:active {
-  transform: scale(0.97);
-  transition: transform 0.1s ease;
-}
-
-/* 自定义开关 Checkbox */
-.custom-checkbox {
-  appearance: none;
-  width: 22px;
-  height: 22px;
-  border: 2px solid #475569;
-  border-radius: 6px;
-  background-color: transparent;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.custom-checkbox:checked {
-  background-color: #10b981;
-  border-color: #10b981;
-}
-
-.custom-checkbox:checked::after {
-  content: '✓';
-  color: #000;
-  font-weight: 900;
-  font-size: 14px;
-}
-
-/* 隐藏移动端无障碍溢出 */
-.no-scrollbar::-webkit-scrollbar {
-  display: none;
-}
-.no-scrollbar {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
-
-</style>
+  <link rel="stylesheet" href="./css/custom.css?v=20261124_03">
 </head>
 <body class="bg-brand-dark text-slate-100 min-h-screen pb-24 md:pb-10 selection:bg-brand-volt selection:text-black">
   <div id="app" v-cloak class="max-w-4xl mx-auto px-3 sm:px-6 pt-4">
@@ -1347,6 +1247,25 @@ body {
         </div>
       </div>
 
+      <!-- 版本更新与缓存重置 (避免旧缓存遮挡新功能) -->
+      <div class="glass-panel rounded-2xl p-4 border border-slate-800 space-y-2.5">
+        <div class="flex items-center justify-between">
+          <h2 class="text-xs font-bold text-white flex items-center space-x-1.5">
+            <span>🔄</span>
+            <span>版本更新与离线缓存</span>
+          </h2>
+          <span class="text-[10px] text-brand-volt font-mono font-bold bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+            v2.0 (含日历与BMR)
+          </span>
+        </div>
+        <p class="text-[11px] text-slate-400 leading-relaxed">
+          若浏览器因 Service Worker 缓存未及时展示最新日历功能，点击下方按钮将彻底清除本地旧缓存并从 GitHub 重新拉取最新前端代码：
+        </p>
+        <button @click="forceClearCacheAndReload" class="w-full bg-slate-900 hover:bg-slate-800 border border-brand-volt/50 text-brand-volt text-xs font-bold py-2.5 rounded-xl transition flex items-center justify-center space-x-1.5 shadow-lg active:scale-95">
+          <span>🧹 强制清理旧缓存并刷新至最新版本</span>
+        </button>
+      </div>
+
       <!-- PWA 添加到主屏幕说明 -->
       <div class="glass-panel rounded-2xl p-4 border border-slate-800/80 bg-slate-950/40 text-xs text-slate-400 space-y-1.5">
         <h3 class="font-bold text-slate-300">📱 如何在手机上以原生 App 全屏使用？</h3>
@@ -1452,6 +1371,13 @@ body {
 
   </div>
 
+  <!-- 引入业务核心模块 (含版本更新防缓存时间戳) -->
+  <script src="./js/exercises.js?v=20261124_03"></script>
+  <script src="./js/calculator.js?v=20261124_03"></script>
+  <script src="./js/recommender.js?v=20261124_03"></script>
+  <script src="./js/nutrition.js?v=20261124_03"></script>
+  <script src="./js/sync.js?v=20261124_03"></script>
+  <script src="./js/app.js?v=20261124_03"></script>
   <script>
 /**
  * SpikeFit - 排球专项体能与健身动作库
@@ -3993,6 +3919,25 @@ const app = createApp({
       reader.readAsText(file);
     };
 
+    const forceClearCacheAndReload = async () => {
+      showToast('正在清理缓存并同步最新版本...');
+      try {
+        if ('caches' in window) {
+          const keys = await caches.keys();
+          await Promise.all(keys.map(k => caches.delete(k)));
+        }
+        if ('serviceWorker' in navigator) {
+          const regs = await navigator.serviceWorker.getRegistrations();
+          await Promise.all(regs.map(r => r.unregister()));
+        }
+      } catch (e) {
+        console.error(e);
+      }
+      setTimeout(() => {
+        window.location.reload(true);
+      }, 500);
+    };
+
     const checkServerInfo = async () => {
       try {
         const resp = await fetch('/api/server_info');
@@ -4011,7 +3956,9 @@ const app = createApp({
       loadState();
       checkServerInfo();
       if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('./sw.js').catch(err => {
+        navigator.serviceWorker.register('./sw.js?v=20261124_02').then(reg => {
+          reg.update();
+        }).catch(err => {
           console.log('SW registration note:', err);
         });
       }
@@ -4097,7 +4044,8 @@ const app = createApp({
       pullSync,
       copySyncCode,
       exportBackupFile,
-      importBackupFile
+      importBackupFile,
+      forceClearCacheAndReload
     };
   }
 });

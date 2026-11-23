@@ -1234,6 +1234,25 @@ const app = createApp({
       reader.readAsText(file);
     };
 
+    const forceClearCacheAndReload = async () => {
+      showToast('正在清理缓存并同步最新版本...');
+      try {
+        if ('caches' in window) {
+          const keys = await caches.keys();
+          await Promise.all(keys.map(k => caches.delete(k)));
+        }
+        if ('serviceWorker' in navigator) {
+          const regs = await navigator.serviceWorker.getRegistrations();
+          await Promise.all(regs.map(r => r.unregister()));
+        }
+      } catch (e) {
+        console.error(e);
+      }
+      setTimeout(() => {
+        window.location.reload(true);
+      }, 500);
+    };
+
     const checkServerInfo = async () => {
       try {
         const resp = await fetch('/api/server_info');
@@ -1252,7 +1271,9 @@ const app = createApp({
       loadState();
       checkServerInfo();
       if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('./sw.js').catch(err => {
+        navigator.serviceWorker.register('./sw.js?v=20261124_02').then(reg => {
+          reg.update();
+        }).catch(err => {
           console.log('SW registration note:', err);
         });
       }
@@ -1338,7 +1359,8 @@ const app = createApp({
       pullSync,
       copySyncCode,
       exportBackupFile,
-      importBackupFile
+      importBackupFile,
+      forceClearCacheAndReload
     };
   }
 });
