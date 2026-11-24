@@ -1228,40 +1228,99 @@
         </details>
       </section>
 
-      <!-- AI 营养识别结果详情卡片 -->
+      <!-- AI 营养识别结果详情卡片 (支持科学自动识别与手动即时校准) -->
       <section v-if="mealAnalysisResult" class="glass-panel rounded-2xl p-5 border border-amber-500/40 relative space-y-4 shadow-xl">
+        <!-- 顶栏状态与微调开关 -->
         <div class="flex items-start justify-between">
           <div>
-            <span class="text-[10px] bg-amber-500/20 text-amber-400 border border-amber-500/30 px-2.5 py-0.5 rounded-full font-bold">
-              AI 营养分析就绪
-            </span>
-            <h3 class="text-base font-extrabold text-white mt-1">{{ mealAnalysisResult.dishName }}</h3>
-            <span class="text-xs text-slate-400">总重量预估：{{ mealAnalysisResult.estimatedWeight }}</span>
+            <div class="flex items-center space-x-2">
+              <span class="text-[10px] bg-amber-500/20 text-amber-400 border border-amber-500/30 px-2.5 py-0.5 rounded-full font-bold">
+                {{ mealAnalysisResult.source === 'gemini_api' ? '⚡ Gemini 官方 API 精准识别' : '🎯 内置排球高精营养引擎' }}
+              </span>
+              <button @click="isEditingMealResult = !isEditingMealResult" class="text-[11px] bg-slate-900 hover:bg-slate-800 text-amber-400 px-2.5 py-0.5 rounded-lg border border-amber-500/30 transition flex items-center space-x-1 font-bold">
+                <span>✏️</span>
+                <span>{{ isEditingMealResult ? '完成微调' : '手动修正数值' }}</span>
+              </button>
+            </div>
+            
+            <div v-if="!isEditingMealResult">
+              <h3 class="text-base font-extrabold text-white mt-1">{{ mealAnalysisResult.dishName }}</h3>
+              <span class="text-xs text-slate-400">总重量预估：<strong class="text-white">{{ mealAnalysisResult.estimatedWeight }}</strong></span>
+            </div>
+            <div v-else class="mt-2 space-y-1.5">
+              <input type="text" v-model="mealAnalysisResult.dishName" placeholder="餐品名称" class="bg-slate-900 border border-slate-700 text-white text-xs px-2.5 py-1.5 rounded-lg w-full font-bold">
+              <input type="text" v-model="mealAnalysisResult.estimatedWeight" placeholder="预估重量 (如：约 55g)" class="bg-slate-900 border border-slate-700 text-slate-300 text-xs px-2.5 py-1.5 rounded-lg w-full font-mono">
+            </div>
           </div>
 
           <div class="text-right">
-            <span class="font-num text-4xl font-extrabold text-amber-400 leading-none">{{ mealAnalysisResult.calories }}</span>
-            <span class="text-xs text-amber-400 font-bold block">KCAL</span>
+            <div v-if="!isEditingMealResult">
+              <span class="font-num text-4xl font-extrabold text-amber-400 leading-none">{{ mealAnalysisResult.calories }}</span>
+              <span class="text-xs text-amber-400 font-bold block">KCAL</span>
+            </div>
+            <div v-else class="w-24">
+              <input type="number" v-model.number="mealAnalysisResult.calories" class="bg-slate-900 border border-amber-400 text-amber-400 text-xl font-num font-bold px-2 py-1 rounded-lg w-full text-right">
+              <span class="text-[10px] text-amber-400 font-bold block mt-0.5">KCAL</span>
+            </div>
           </div>
         </div>
 
-        <!-- 四大营养素卡片 -->
+        <!-- 常用真实单品一键校准 Pills -->
+        <div class="bg-slate-950/60 p-2.5 rounded-xl border border-slate-800/80 space-y-1.5">
+          <div class="flex items-center justify-between text-[11px] text-slate-400 font-bold">
+            <span>🥚 快速一键修正为真实食物标准克数与热量：</span>
+          </div>
+          <div class="flex flex-wrap gap-1.5 text-xs">
+            <button @click="setMealQuickPreset('tea_egg_1')" class="bg-slate-900 hover:bg-amber-400 hover:text-black text-slate-300 px-2 py-1 rounded-lg border border-slate-800 text-[11px] transition font-medium">
+              🥚 茶叶蛋 1个 (55g / 74kcal)
+            </button>
+            <button @click="setMealQuickPreset('tea_egg_2')" class="bg-slate-900 hover:bg-amber-400 hover:text-black text-slate-300 px-2 py-1 rounded-lg border border-slate-800 text-[11px] transition font-medium">
+              🥚 茶叶蛋 2个 (110g / 148kcal)
+            </button>
+            <button @click="setMealQuickPreset('milk_1')" class="bg-slate-900 hover:bg-blue-400 hover:text-black text-slate-300 px-2 py-1 rounded-lg border border-slate-800 text-[11px] transition font-medium">
+              🥛 纯牛奶 1盒 (250ml / 160kcal)
+            </button>
+            <button @click="setMealQuickPreset('banana_1')" class="bg-slate-900 hover:bg-yellow-400 hover:text-black text-slate-300 px-2 py-1 rounded-lg border border-slate-800 text-[11px] transition font-medium">
+              🍌 香蕉 1根 (110g / 95kcal)
+            </button>
+            <button @click="setMealQuickPreset('rice_1')" class="bg-slate-900 hover:bg-emerald-400 hover:text-black text-slate-300 px-2 py-1 rounded-lg border border-slate-800 text-[11px] transition font-medium">
+              🍚 米饭 1平碗 (150g / 175kcal)
+            </button>
+            <button @click="setMealQuickPreset('chicken_1')" class="bg-slate-900 hover:bg-orange-400 hover:text-black text-slate-300 px-2 py-1 rounded-lg border border-slate-800 text-[11px] transition font-medium">
+              🍗 熟鸡胸 1块 (120g / 160kcal)
+            </button>
+          </div>
+        </div>
+
+        <!-- 四大营养素卡片 (支持直接展示与微调) -->
         <div class="grid grid-cols-4 gap-2 text-center text-xs">
           <div class="bg-slate-900/60 p-2.5 rounded-xl border border-slate-800">
             <span class="text-[10px] text-slate-400 block mb-0.5">碳水化合物</span>
-            <span class="font-num text-lg font-bold text-white">{{ mealAnalysisResult.carbs }}<span class="text-[10px]">g</span></span>
+            <div v-if="!isEditingMealResult">
+              <span class="font-num text-lg font-bold text-white">{{ mealAnalysisResult.carbs }}<span class="text-[10px]">g</span></span>
+            </div>
+            <input v-else type="number" step="0.5" v-model.number="mealAnalysisResult.carbs" class="w-full bg-slate-950 border border-slate-700 text-white rounded text-xs p-1 text-center font-num">
           </div>
           <div class="bg-slate-900/60 p-2.5 rounded-xl border border-slate-800">
             <span class="text-[10px] text-slate-400 block mb-0.5">蛋白质</span>
-            <span class="font-num text-lg font-bold text-amber-400">{{ mealAnalysisResult.protein }}<span class="text-[10px]">g</span></span>
+            <div v-if="!isEditingMealResult">
+              <span class="font-num text-lg font-bold text-blue-400">{{ mealAnalysisResult.protein }}<span class="text-[10px]">g</span></span>
+            </div>
+            <input v-else type="number" step="0.5" v-model.number="mealAnalysisResult.protein" class="w-full bg-slate-950 border border-slate-700 text-blue-400 rounded text-xs p-1 text-center font-num">
           </div>
           <div class="bg-slate-900/60 p-2.5 rounded-xl border border-slate-800">
             <span class="text-[10px] text-slate-400 block mb-0.5">脂肪</span>
-            <span class="font-num text-lg font-bold text-slate-300">{{ mealAnalysisResult.fat }}<span class="text-[10px]">g</span></span>
+            <div v-if="!isEditingMealResult">
+              <span class="font-num text-lg font-bold text-rose-400">{{ mealAnalysisResult.fat }}<span class="text-[10px]">g</span></span>
+            </div>
+            <input v-else type="number" step="0.5" v-model.number="mealAnalysisResult.fat" class="w-full bg-slate-950 border border-slate-700 text-rose-400 rounded text-xs p-1 text-center font-num">
           </div>
           <div class="bg-slate-900/60 p-2.5 rounded-xl border border-slate-800">
             <span class="text-[10px] text-slate-400 block mb-0.5">膳食纤维</span>
-            <span class="font-num text-lg font-bold text-brand-volt">{{ mealAnalysisResult.fiber || 5 }}<span class="text-[10px]">g</span></span>
+            <div v-if="!isEditingMealResult">
+              <span class="font-num text-lg font-bold text-brand-volt">{{ mealAnalysisResult.fiber || 0 }}<span class="text-[10px]">g</span></span>
+            </div>
+            <input v-else type="number" step="0.5" v-model.number="mealAnalysisResult.fiber" class="w-full bg-slate-950 border border-slate-700 text-brand-volt rounded text-xs p-1 text-center font-num">
           </div>
         </div>
 
@@ -1284,8 +1343,8 @@
         </div>
 
         <!-- 一键记入今日摄入按钮 -->
-        <button @click="logMealToToday(mealAnalysisResult)" class="w-full bg-brand-volt text-black font-extrabold text-xs py-3 rounded-xl shadow-lg shadow-emerald-500/20 active:scale-95 transition flex items-center justify-center space-x-2">
-          <span>＋ 记入今日饮食清单并计入能量天平</span>
+        <button @click="logMealToToday(mealAnalysisResult)" class="w-full bg-brand-volt hover:bg-emerald-400 text-black font-extrabold text-xs py-3 rounded-xl shadow-lg shadow-emerald-500/20 active:scale-95 transition flex items-center justify-center space-x-2">
+          <span>＋ 确认并记入今日饮食清单 (计入能量天平)</span>
         </button>
       </section>
 
@@ -1813,12 +1872,12 @@
   </div>
 
   <!-- 引入业务核心模块 (含版本更新防缓存时间戳) -->
-  <script src="./js/exercises.js?v=20261124_05"></script>
-  <script src="./js/exercise_illustrations.js?v=20261124_05"></script>
-  <script src="./js/calculator.js?v=20261124_05"></script>
-  <script src="./js/recommender.js?v=20261124_05"></script>
-  <script src="./js/nutrition.js?v=20261124_05"></script>
-  <script src="./js/sync.js?v=20261124_05"></script>
-  <script src="./js/app.js?v=20261124_05"></script>
+  <script src="./js/exercises.js?v=20261124_06"></script>
+  <script src="./js/exercise_illustrations.js?v=20261124_06"></script>
+  <script src="./js/calculator.js?v=20261124_06"></script>
+  <script src="./js/recommender.js?v=20261124_06"></script>
+  <script src="./js/nutrition.js?v=20261124_06"></script>
+  <script src="./js/sync.js?v=20261124_06"></script>
+  <script src="./js/app.js?v=20261124_06"></script>
 </body>
 </html>

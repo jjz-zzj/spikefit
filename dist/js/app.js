@@ -950,6 +950,86 @@ const app = createApp({
       }
     };
 
+    const isEditingMealResult = ref(false);
+
+    const setMealQuickPreset = (type) => {
+      if (!mealAnalysisResult.value) {
+        mealAnalysisResult.value = {
+          dishName: '',
+          estimatedWeight: '',
+          calories: 0,
+          carbs: 0,
+          protein: 0,
+          fat: 0,
+          fiber: 0,
+          ingredients: [],
+          volleyballAdvice: ''
+        };
+      }
+      if (type === 'tea_egg_1') {
+        mealAnalysisResult.value.dishName = '茶叶蛋 1个';
+        mealAnalysisResult.value.estimatedWeight = '约 55g';
+        mealAnalysisResult.value.calories = 74;
+        mealAnalysisResult.value.carbs = 1;
+        mealAnalysisResult.value.protein = 7;
+        mealAnalysisResult.value.fat = 5;
+        mealAnalysisResult.value.fiber = 0;
+        mealAnalysisResult.value.ingredients = ['茶叶蛋 1个 (约 55g, 74 kcal)'];
+        mealAnalysisResult.value.volleyballAdvice = '🥚 优质全蛋白金标准：单枚仅约 74 kcal，含约 7g 极易吸收的高生物价蛋白质，赛前加餐轻盈无负担，练后能迅速修复挥臂肌原纤维。';
+      } else if (type === 'tea_egg_2') {
+        mealAnalysisResult.value.dishName = '茶叶蛋 2个';
+        mealAnalysisResult.value.estimatedWeight = '约 110g';
+        mealAnalysisResult.value.calories = 148;
+        mealAnalysisResult.value.carbs = 2;
+        mealAnalysisResult.value.protein = 14;
+        mealAnalysisResult.value.fat = 10;
+        mealAnalysisResult.value.fiber = 0;
+        mealAnalysisResult.value.ingredients = ['茶叶蛋 2个 (约 110g, 148 kcal)'];
+        mealAnalysisResult.value.volleyballAdvice = '🥚 双倍高纯度蛋白质：热量仅 148 kcal，提供 14g 优质蛋白质，大力量训练后极佳修复。';
+      } else if (type === 'milk_1') {
+        mealAnalysisResult.value.dishName = '纯牛奶 1盒';
+        mealAnalysisResult.value.estimatedWeight = '约 250ml';
+        mealAnalysisResult.value.calories = 160;
+        mealAnalysisResult.value.carbs = 12;
+        mealAnalysisResult.value.protein = 8;
+        mealAnalysisResult.value.fat = 9;
+        mealAnalysisResult.value.fiber = 0;
+        mealAnalysisResult.value.ingredients = ['纯牛奶 250ml (160 kcal)'];
+        mealAnalysisResult.value.volleyballAdvice = '🥛 补水与优质乳蛋白：一盒标准牛奶 250ml 提供 8g 优质乳蛋白与高钙，平稳维持体能。';
+      } else if (type === 'banana_1') {
+        mealAnalysisResult.value.dishName = '香蕉 1根';
+        mealAnalysisResult.value.estimatedWeight = '约 110g';
+        mealAnalysisResult.value.calories = 95;
+        mealAnalysisResult.value.carbs = 25;
+        mealAnalysisResult.value.protein = 1;
+        mealAnalysisResult.value.fat = 0;
+        mealAnalysisResult.value.fiber = 3;
+        mealAnalysisResult.value.ingredients = ['中等香蕉 1根 (约 110g, 95 kcal)'];
+        mealAnalysisResult.value.volleyballAdvice = '🍌 排球第一加餐：富含钾元素与快慢结合碳水，强效防止起跳跟腱小腿抽筋！';
+      } else if (type === 'rice_1') {
+        mealAnalysisResult.value.dishName = '白米饭 1碗';
+        mealAnalysisResult.value.estimatedWeight = '约 150g';
+        mealAnalysisResult.value.calories = 175;
+        mealAnalysisResult.value.carbs = 38;
+        mealAnalysisResult.value.protein = 4;
+        mealAnalysisResult.value.fat = 0;
+        mealAnalysisResult.value.fiber = 1;
+        mealAnalysisResult.value.ingredients = ['熟米饭 1碗 (约 150g, 175 kcal)'];
+        mealAnalysisResult.value.volleyballAdvice = '🍚 标准主食充碳：标准 1 平碗熟米饭约 150g，快速补充肌糖原储备。';
+      } else if (type === 'chicken_1') {
+        mealAnalysisResult.value.dishName = '鸡胸肉 1块';
+        mealAnalysisResult.value.estimatedWeight = '约 120g';
+        mealAnalysisResult.value.calories = 160;
+        mealAnalysisResult.value.carbs = 0;
+        mealAnalysisResult.value.protein = 33;
+        mealAnalysisResult.value.fat = 3;
+        mealAnalysisResult.value.fiber = 0;
+        mealAnalysisResult.value.ingredients = ['熟鸡胸 1块 (约 120g, 160 kcal)'];
+        mealAnalysisResult.value.volleyballAdvice = '🍗 纯净高蛋白源：熟鸡胸单块约 120g，含高达 33g 纯净蛋白质，促进力量超量恢复。';
+      }
+      showToast(`已应用【${mealAnalysisResult.value.dishName}】科学真实营养数据！`);
+    };
+
     const logMealToToday = (result) => {
       if (!result) return;
       const mealEntry = {
@@ -1390,6 +1470,8 @@ const app = createApp({
       mealTextDescription,
       isAnalyzingMeal,
       mealAnalysisResult,
+      isEditingMealResult,
+      setMealQuickPreset,
       pastedAiText,
       showPasteAiModal,
       todayMeals,
