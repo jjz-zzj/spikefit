@@ -764,14 +764,14 @@
           <div v-if="selectedDayDetail.meals && selectedDayDetail.meals.length" class="space-y-2">
             <div v-for="(meal, mIdx) in selectedDayDetail.meals" :key="mIdx" class="bg-slate-950/60 p-3 rounded-xl border border-slate-800 text-xs space-y-1">
               <div class="flex items-center justify-between">
-                <span class="font-bold text-slate-200">{{ meal.dishName }}</span>
-                <span class="font-bold text-amber-400 font-num">{{ meal.calories }} KCAL</span>
+                <span class="font-bold text-slate-200">{{ meal.dishName || meal.n || '自选餐食' }}</span>
+                <span class="font-bold text-amber-400 font-num">{{ typeof meal.calories !== 'undefined' ? meal.calories : (meal.cal ?? 0) }} KCAL</span>
               </div>
               <div class="flex items-center space-x-3 text-[10px] text-slate-400">
-                <span>碳水 {{ meal.carbs }}g</span>
-                <span>蛋白质 {{ meal.protein }}g</span>
-                <span>脂肪 {{ meal.fat }}g</span>
-                <span v-if="meal.fiber">纤维 {{ meal.fiber }}g</span>
+                <span>碳水 {{ typeof meal.carbs !== 'undefined' ? meal.carbs : (meal.c ?? 0) }}g</span>
+                <span>蛋白质 {{ typeof meal.protein !== 'undefined' ? meal.protein : (meal.p ?? 0) }}g</span>
+                <span>脂肪 {{ typeof meal.fat !== 'undefined' ? meal.fat : (meal.f ?? 0) }}g</span>
+                <span v-if="meal.fiber || meal.fib">纤维 {{ meal.fiber || meal.fib }}g</span>
               </div>
               <p v-if="meal.advice" class="text-[10px] text-slate-500 leading-tight">{{ meal.advice }}</p>
             </div>
@@ -1363,20 +1363,20 @@
         <div v-for="(meal, mIdx) in todayMeals" :key="meal.id" class="glass-panel rounded-2xl p-3.5 border border-slate-800 flex items-center justify-between">
           <div>
             <div class="flex items-center space-x-2 mb-0.5">
-              <span class="text-xs text-slate-400 font-mono">{{ meal.time }}</span>
-              <h4 class="text-sm font-bold text-white">{{ meal.dishName }}</h4>
+              <span class="text-xs text-slate-400 font-mono">{{ meal.time || meal.t || '' }}</span>
+              <h4 class="text-sm font-bold text-white">{{ meal.dishName || meal.n || '自选餐食' }}</h4>
             </div>
             <div class="flex items-center space-x-2 text-[11px] text-slate-400">
-              <span>碳水 {{ meal.carbs }}g</span>
+              <span>碳水 {{ typeof meal.carbs !== 'undefined' ? meal.carbs : (meal.c ?? 0) }}g</span>
               <span>•</span>
-              <span class="text-amber-400 font-medium">蛋白 {{ meal.protein }}g</span>
+              <span class="text-amber-400 font-medium">蛋白 {{ typeof meal.protein !== 'undefined' ? meal.protein : (meal.p ?? 0) }}g</span>
               <span>•</span>
-              <span>脂肪 {{ meal.fat }}g</span>
+              <span>脂肪 {{ typeof meal.fat !== 'undefined' ? meal.fat : (meal.f ?? 0) }}g</span>
             </div>
           </div>
 
           <div class="flex items-center space-x-3">
-            <span class="font-num font-bold text-amber-400 text-lg">{{ meal.calories }} <span class="text-[10px]">kcal</span></span>
+            <span class="font-num font-bold text-amber-400 text-lg">{{ typeof meal.calories !== 'undefined' ? meal.calories : (meal.cal ?? 0) }} <span class="text-[10px]">kcal</span></span>
             <button @click="removeMeal(mIdx)" class="text-slate-500 hover:text-red-400 text-xs p-1">✕</button>
           </div>
         </div>
@@ -1892,12 +1892,12 @@
   </div>
 
   <!-- 引入业务核心模块 (含版本更新防缓存时间戳) -->
-  <script src="./js/exercises.js?v=20261124_07"></script>
-  <script src="./js/exercise_illustrations.js?v=20261124_07"></script>
-  <script src="./js/calculator.js?v=20261124_07"></script>
-  <script src="./js/recommender.js?v=20261124_07"></script>
-  <script src="./js/nutrition.js?v=20261124_07"></script>
-  <script src="./js/sync.js?v=20261124_07"></script>
-  <script src="./js/app.js?v=20261124_07"></script>
+  <script src="./js/exercises.js?v=20261124_08"></script>
+  <script src="./js/exercise_illustrations.js?v=20261124_08"></script>
+  <script src="./js/calculator.js?v=20261124_08"></script>
+  <script src="./js/recommender.js?v=20261124_08"></script>
+  <script src="./js/nutrition.js?v=20261124_08"></script>
+  <script src="./js/sync.js?v=20261124_08"></script>
+  <script src="./js/app.js?v=20261124_08"></script>
 </body>
 </html>

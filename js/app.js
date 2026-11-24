@@ -376,6 +376,22 @@ const app = createApp({
     let autoSyncTimer = null;
     let lastPullTimestamp = 0;
 
+    // 核心餐食对象全字段规范化 (全量兼容旧版压缩字段 t, n, cal, c, p, f 与全量字段)
+    const normalizeMeal = (m) => {
+      if (!m || typeof m !== 'object') return null;
+      return {
+        id: m.id || ('meal_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4)),
+        time: m.time || m.t || new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        dishName: m.dishName || m.n || '自选餐食',
+        calories: Number(typeof m.calories !== 'undefined' ? m.calories : (m.cal || 0)) || 0,
+        carbs: Number(typeof m.carbs !== 'undefined' ? m.carbs : (m.c || 0)) || 0,
+        protein: Number(typeof m.protein !== 'undefined' ? m.protein : (m.p || 0)) || 0,
+        fat: Number(typeof m.fat !== 'undefined' ? m.fat : (m.f || 0)) || 0,
+        fiber: Number(typeof m.fiber !== 'undefined' ? m.fiber : (m.fib || 0)) || 0,
+        advice: m.advice || m.adv || ''
+      };
+    };
+
     // 动作库检索与过滤
     const librarySearch = ref('');
     const libraryCategory = ref('all');
@@ -499,24 +515,26 @@ const app = createApp({
       return CalorieCalculator.getEquivalents(todayTotalCalories.value);
     });
 
-    // 今日饮食总摄入统计
+    // 今日饮食总摄入统计 (全面适配规范化餐食对象)
     const todayNutritionTotal = computed(() => {
       let cals = 0;
       let carbs = 0;
       let protein = 0;
       let fat = 0;
       let fiber = 0;
-      todayMeals.value.forEach(m => {
-        cals += Number(m.calories) || 0;
-        carbs += Number(m.carbs) || 0;
-        protein += Number(m.protein) || 0;
-        fat += Number(m.fat) || 0;
-        fiber += Number(m.fiber) || 0;
+      (todayMeals.value || []).forEach(item => {
+        const m = normalizeMeal(item);
+        if (!m) return;
+        cals += m.calories;
+        carbs += m.carbs;
+        protein += m.protein;
+        fat += m.fat;
+        fiber += m.fiber;
       });
       return {
         calories: Math.round(cals),
         carbs: Math.round(carbs),
-        protein: Math.round(protein),
+        protein: Number(protein.toFixed(1)),
         fat: Math.round(fat),
         fiber: Math.round(fiber)
       };
@@ -644,12 +662,12 @@ const app = createApp({
     };
 
     const syncMealsToDict = () => {
-      dailyMeals.value[activePlanDate.value] = JSON.parse(JSON.stringify(todayMeals.value));
+      dailyMeals.value[activePlanDate.value] = (todayMeals.value || []).map(normalizeMeal).filter(Boolean);
     };
 
     const loadMealsFromDict = (dateStr) => {
       if (dailyMeals.value[dateStr]) {
-        todayMeals.value = JSON.parse(JSON.stringify(dailyMeals.value[dateStr]));
+        todayMeals.value = (dailyMeals.value[dateStr] || []).map(normalizeMeal).filter(Boolean);
       } else {
         todayMeals.value = [];
         dailyMeals.value[dateStr] = [];
@@ -756,12 +774,15 @@ const app = createApp({
       };
     };
 
-    // 辅助：获取任意一天的餐食数据
+    // 辅助：获取任意一天的餐食数据 (全量标准化输出)
     const getDayMealsData = (dateStr) => {
+      let rawList = [];
       if (dateStr === activePlanDate.value && todayMeals.value && todayMeals.value.length) {
-        return todayMeals.value;
+        rawList = todayMeals.value;
+      } else {
+        rawList = dailyMeals.value[dateStr] || [];
       }
-      return dailyMeals.value[dateStr] || [];
+      return rawList.map(normalizeMeal).filter(Boolean);
     };
 
     // 日历网格计算属性 (周一起始)
@@ -1292,7 +1313,7 @@ const app = createApp({
         todayVolleyball: todayVolleyball.value,
         todayTreadmill: todayTreadmill.value,
         todayExercises: todayExercises.value,
-        todayMeals: todayMeals.value,
+        todayMeals: (todayMeals.value || []).map(normalizeMeal).filter(Boolean),
         geminiApiKey: geminiApiKey.value,
         historyLogs: historyLogs.value
       };
@@ -1325,8 +1346,16 @@ const app = createApp({
             if (cloudData.fatigue) fatigue.value = cloudData.fatigue;
             if (cloudData.historyLogs) historyLogs.value = cloudData.historyLogs;
             if (cloudData.dailyPlans) dailyPlans.value = cloudData.dailyPlans;
-            if (cloudData.dailyMeals) dailyMeals.value = cloudData.dailyMeals;
-            if (cloudData.todayMeals) todayMeals.value = cloudData.todayMeals;
+            if (cloudData.dailyMeals) {
+              const normDaily = {};
+              for (const d in cloudData.dailyMeals) {
+                normDaily[d] = (cloudData.dailyMeals[d] || []).map(normalizeMeal).filter(Boolean);
+              }
+              dailyMeals.value = normDaily;
+            }
+            if (cloudData.todayMeals) {
+              todayMeals.value = (cloudData.todayMeals || []).map(normalizeMeal).filter(Boolean);
+            }
             if (cloudData.geminiApiKey) geminiApiKey.value = cloudData.geminiApiKey;
 
             loadPlanFromDict(activePlanDate.value);
@@ -1379,10 +1408,14 @@ const app = createApp({
           dailyPlans.value = localData.dailyPlans;
         }
         if (localData.dailyMeals) {
-          dailyMeals.value = localData.dailyMeals;
+          const normDaily = {};
+          for (const d in localData.dailyMeals) {
+            normDaily[d] = (localData.dailyMeals[d] || []).map(normalizeMeal).filter(Boolean);
+          }
+          dailyMeals.value = normDaily;
         }
         if (localData.todayMeals) {
-          todayMeals.value = localData.todayMeals;
+          todayMeals.value = (localData.todayMeals || []).map(normalizeMeal).filter(Boolean);
         }
         if (localData.geminiApiKey) {
           geminiApiKey.value = localData.geminiApiKey;
@@ -1422,7 +1455,7 @@ const app = createApp({
         todayVolleyball: todayVolleyball.value,
         todayTreadmill: todayTreadmill.value,
         todayExercises: todayExercises.value,
-        todayMeals: todayMeals.value,
+        todayMeals: (todayMeals.value || []).map(normalizeMeal).filter(Boolean),
         geminiApiKey: geminiApiKey.value,
         historyLogs: historyLogs.value
       };
@@ -1451,11 +1484,20 @@ const app = createApp({
         if (cloudData.fatigue) fatigue.value = cloudData.fatigue;
         if (cloudData.historyLogs) historyLogs.value = cloudData.historyLogs;
         if (cloudData.dailyPlans) dailyPlans.value = cloudData.dailyPlans;
-        if (cloudData.dailyMeals) dailyMeals.value = cloudData.dailyMeals;
-        if (cloudData.todayMeals) todayMeals.value = cloudData.todayMeals;
+        if (cloudData.dailyMeals) {
+          const normDaily = {};
+          for (const d in cloudData.dailyMeals) {
+            normDaily[d] = (cloudData.dailyMeals[d] || []).map(normalizeMeal).filter(Boolean);
+          }
+          dailyMeals.value = normDaily;
+        }
+        if (cloudData.todayMeals) {
+          todayMeals.value = (cloudData.todayMeals || []).map(normalizeMeal).filter(Boolean);
+        }
         if (cloudData.geminiApiKey) geminiApiKey.value = cloudData.geminiApiKey;
 
         loadPlanFromDict(activePlanDate.value);
+        loadMealsFromDict(activePlanDate.value);
 
         if (inputSyncCode.value.trim()) {
           syncCode.value = SyncEngine.setSyncCode(inputSyncCode.value.trim());
@@ -1568,7 +1610,7 @@ const app = createApp({
       });
 
       if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('./sw.js?v=20261124_07').then(reg => {
+        navigator.serviceWorker.register('./sw.js?v=20261124_08').then(reg => {
           reg.update();
         }).catch(err => {
           console.log('SW registration note:', err);
