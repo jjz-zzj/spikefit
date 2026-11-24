@@ -1,4 +1,4 @@
-const CACHE_NAME = 'spikefit-cache-v2';
+const CACHE_NAME = 'spikefit-cache-v3';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -7,6 +7,8 @@ const ASSETS_TO_CACHE = [
   './js/exercises.js',
   './js/calculator.js',
   './js/recommender.js',
+  './js/nutrition.js',
+  './js/exercise_illustrations.js',
   './js/sync.js',
   './js/app.js'
 ];

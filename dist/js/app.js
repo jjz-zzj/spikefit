@@ -372,6 +372,44 @@ const app = createApp({
     const libraryEquipment = ref('all');
     const selectedExerciseDetail = ref(null);
 
+    // 动作教学示意图弹窗与状态
+    const showExerciseIllustrationModal = ref(false);
+    const currentIllustration = ref(null);
+    const currentIllustrationExercise = ref(null);
+
+    const openExerciseIllustration = (exerciseOrId) => {
+      let exId = '';
+      let exObj = null;
+      if (typeof exerciseOrId === 'string') {
+        exId = exerciseOrId;
+        exObj = EXERCISE_DATABASE.find(e => e.id === exId) || null;
+      } else if (exerciseOrId && typeof exerciseOrId === 'object') {
+        exId = exerciseOrId.id || exerciseOrId.exerciseId || '';
+        exObj = exerciseOrId;
+      }
+      if (!exId) return;
+
+      const illus = (typeof getExerciseIllustration === 'function') ? getExerciseIllustration(exId) : (typeof EXERCISE_ILLUSTRATIONS !== 'undefined' ? EXERCISE_ILLUSTRATIONS[exId] : null);
+      if (illus) {
+        currentIllustration.value = illus;
+        currentIllustrationExercise.value = exObj || { id: exId, name: illus.title };
+        showExerciseIllustrationModal.value = true;
+      } else {
+        showToast('该动作教学图解正在生成中');
+      }
+    };
+
+    const closeExerciseIllustration = () => {
+      showExerciseIllustrationModal.value = false;
+    };
+
+    const getIllustrationSvg = (exId) => {
+      if (typeof EXERCISE_ILLUSTRATIONS !== 'undefined' && EXERCISE_ILLUSTRATIONS[exId]) {
+        return EXERCISE_ILLUSTRATIONS[exId].svg;
+      }
+      return '';
+    };
+
     // Toast 提示
     const toast = ref({ show: false, message: '' });
 
@@ -1336,6 +1374,12 @@ const app = createApp({
       libraryCategory,
       libraryEquipment,
       selectedExerciseDetail,
+      showExerciseIllustrationModal,
+      currentIllustration,
+      currentIllustrationExercise,
+      openExerciseIllustration,
+      closeExerciseIllustration,
+      getIllustrationSvg,
       toast,
       showToast,
       treadmillCalories,

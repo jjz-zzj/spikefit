@@ -1,4 +1,5 @@
 import os
+import re
 
 base_dir = os.path.dirname(os.path.abspath(__file__))
 
@@ -10,6 +11,9 @@ with open(os.path.join(base_dir, 'css', 'custom.css'), 'r', encoding='utf-8') as
 
 with open(os.path.join(base_dir, 'js', 'exercises.js'), 'r', encoding='utf-8') as f:
     exercises = f.read()
+
+with open(os.path.join(base_dir, 'js', 'exercise_illustrations.js'), 'r', encoding='utf-8') as f:
+    illustrations = f.read()
 
 with open(os.path.join(base_dir, 'js', 'calculator.js'), 'r', encoding='utf-8') as f:
     calculator = f.read()
@@ -33,6 +37,8 @@ html = html.replace('<link rel="stylesheet" href="./css/custom.css">', f'<style>
 js_block = f"""  <script>
 {exercises}
 
+{illustrations}
+
 {calculator}
 
 {recommender}
@@ -44,18 +50,12 @@ js_block = f"""  <script>
 {app}
   </script>"""
 
-find_scripts = """  <!-- 引入业务核心模块 -->
-  <script src="./js/exercises.js"></script>
-  <script src="./js/calculator.js"></script>
-  <script src="./js/recommender.js"></script>
-  <script src="./js/nutrition.js"></script>
-  <script src="./js/sync.js"></script>
-  <script src="./js/app.js"></script>"""
-
-if find_scripts in html:
-    html = html.replace(find_scripts, js_block)
+# 替换所有引入业务核心模块的 script 标签
+script_pattern = r'<!-- 引入业务核心模块.*?-->.*?<script src="\./js/app\.js.*?</script>'
+m = re.search(script_pattern, html, re.DOTALL)
+if m:
+    html = html[:m.start()] + f'<!-- 内联全量离线核心业务及矢量图解库 -->\n{js_block}' + html[m.end():]
 else:
-    # 查找 </body> 前插入
     html = html.replace('</body>', f'{js_block}\n</body>')
 
 output_path = os.path.join(base_dir, 'SpikeFit_手机便携离线版.html')
