@@ -1568,7 +1568,7 @@ const app = createApp({
       });
 
       if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('./sw.js?v=20261124_06').then(reg => {
+        navigator.serviceWorker.register('./sw.js?v=20261124_07').then(reg => {
           reg.update();
         }).catch(err => {
           console.log('SW registration note:', err);
