@@ -369,6 +369,13 @@ const app = createApp({
     const showQrModal = ref(false);
     const mobileLanUrl = ref(window.location.href);
 
+    // 自动双向实时云同步引擎状态
+    const isAutoSyncEnabled = ref(localStorage.getItem('spikefit_auto_sync') !== 'false');
+    const isAutoSyncing = ref(false);
+    const lastSyncTime = ref(localStorage.getItem('spikefit_last_sync_time') || '');
+    let autoSyncTimer = null;
+    let lastPullTimestamp = 0;
+
     // 动作库检索与过滤
     const librarySearch = ref('');
     const libraryCategory = ref('all');
@@ -1236,7 +1243,43 @@ const app = createApp({
     };
 
     // ================= 数据持久化与云同步 =================
-    const saveState = () => {
+    const triggerAutoSync = () => {
+      if (!isAutoSyncEnabled.value) return;
+      if (autoSyncTimer) clearTimeout(autoSyncTimer);
+      autoSyncTimer = setTimeout(async () => {
+        try {
+          isAutoSyncing.value = true;
+          syncCurrentFormToDict();
+          syncMealsToDict();
+          const currentData = {
+            userProfile: userProfile.value,
+            fatigue: fatigue.value,
+            todayDate: todayDate.value,
+            planDateMode: planDateMode.value,
+            dailyPlans: dailyPlans.value,
+            dailyMeals: dailyMeals.value,
+            todayVolleyball: todayVolleyball.value,
+            todayTreadmill: todayTreadmill.value,
+            todayExercises: todayExercises.value,
+            todayMeals: todayMeals.value,
+            geminiApiKey: geminiApiKey.value,
+            historyLogs: historyLogs.value
+          };
+          const res = await SyncEngine.pushToCloud(currentData, syncCode.value);
+          if (res && res.success) {
+            const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            lastSyncTime.value = timeStr;
+            localStorage.setItem('spikefit_last_sync_time', timeStr);
+          }
+        } catch (e) {
+          console.warn('自动后台静默推送异常:', e);
+        } finally {
+          isAutoSyncing.value = false;
+        }
+      }, 2000);
+    };
+
+    const saveState = (skipAutoPush = false) => {
       syncCurrentFormToDict();
       syncMealsToDict();
       const stateToSave = {
@@ -1254,6 +1297,64 @@ const app = createApp({
         historyLogs: historyLogs.value
       };
       SyncEngine.saveLocalData(stateToSave);
+      if (!skipAutoPush) {
+        triggerAutoSync();
+      }
+    };
+
+    const checkAndAutoPull = async (silent = true) => {
+      if (!isAutoSyncEnabled.value || isAutoSyncing.value) return;
+      const now = Date.now();
+      // 节流：拉取间隔至少 8 秒
+      if (now - lastPullTimestamp < 8000) return;
+      lastPullTimestamp = now;
+
+      try {
+        const res = await SyncEngine.pullFromCloud(syncCode.value);
+        if (res && res.success && res.data) {
+          const cloudData = res.data;
+          const localRaw = localStorage.getItem(SyncEngine.STORAGE_KEY);
+          const localData = localRaw ? JSON.parse(localRaw) : null;
+
+          const cloudTime = res.updatedAt ? new Date(res.updatedAt).getTime() : 0;
+          const localTime = localData && localData.updatedAt ? new Date(localData.updatedAt).getTime() : 0;
+
+          // 若云端更新时间晚于本地时间（或本地尚无记录），自动合并
+          if (!localTime || cloudTime > localTime) {
+            if (cloudData.userProfile) userProfile.value = { ...userProfile.value, ...cloudData.userProfile };
+            if (cloudData.fatigue) fatigue.value = cloudData.fatigue;
+            if (cloudData.historyLogs) historyLogs.value = cloudData.historyLogs;
+            if (cloudData.dailyPlans) dailyPlans.value = cloudData.dailyPlans;
+            if (cloudData.dailyMeals) dailyMeals.value = cloudData.dailyMeals;
+            if (cloudData.todayMeals) todayMeals.value = cloudData.todayMeals;
+            if (cloudData.geminiApiKey) geminiApiKey.value = cloudData.geminiApiKey;
+
+            loadPlanFromDict(activePlanDate.value);
+            loadMealsFromDict(activePlanDate.value);
+
+            saveState(true); // 仅保存本地，不触发循环反推
+            const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            lastSyncTime.value = timeStr;
+            localStorage.setItem('spikefit_last_sync_time', timeStr);
+            if (!silent) {
+              showToast('☁️ 已自动同步最新云端记录');
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('自动拉取云端记录提示:', err);
+      }
+    };
+
+    const toggleAutoSync = () => {
+      isAutoSyncEnabled.value = !isAutoSyncEnabled.value;
+      localStorage.setItem('spikefit_auto_sync', isAutoSyncEnabled.value ? 'true' : 'false');
+      if (isAutoSyncEnabled.value) {
+        showToast('⚡ 已开启自动双向实时云同步');
+        triggerAutoSync();
+      } else {
+        showToast('⏸️ 已关闭自动同步（可随时手动点击上传/拉取）');
+      }
     };
 
     const loadState = () => {
@@ -1331,6 +1432,11 @@ const app = createApp({
         message: res.message, 
         type: res.success ? 'success' : 'warning' 
       };
+      if (res.success) {
+        const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        lastSyncTime.value = timeStr;
+        localStorage.setItem('spikefit_last_sync_time', timeStr);
+      }
       showToast(res.message);
     };
 
@@ -1356,7 +1462,10 @@ const app = createApp({
           inputSyncCode.value = '';
         }
 
-        saveState();
+        saveState(true);
+        const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        lastSyncTime.value = timeStr;
+        localStorage.setItem('spikefit_last_sync_time', timeStr);
         syncStatus.value = { loading: false, message: '✅ 同步拉取完成！数据已更新', type: 'success' };
         showToast('✅ 数据已成功同步！');
       } else {
@@ -1441,8 +1550,25 @@ const app = createApp({
     onMounted(() => {
       loadState();
       checkServerInfo();
+
+      if (isAutoSyncEnabled.value) {
+        checkAndAutoPull(true);
+      }
+
+      // 监听页面切回前台（手机唤醒/切回浏览器标签）自动拉取最新云端记录
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible' && isAutoSyncEnabled.value) {
+          checkAndAutoPull(false);
+        }
+      });
+      window.addEventListener('focus', () => {
+        if (isAutoSyncEnabled.value) {
+          checkAndAutoPull(true);
+        }
+      });
+
       if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('./sw.js?v=20261124_02').then(reg => {
+        navigator.serviceWorker.register('./sw.js?v=20261124_06').then(reg => {
           reg.update();
         }).catch(err => {
           console.log('SW registration note:', err);
@@ -1507,6 +1633,10 @@ const app = createApp({
       syncCode,
       inputSyncCode,
       syncStatus,
+      isAutoSyncEnabled,
+      isAutoSyncing,
+      lastSyncTime,
+      toggleAutoSync,
       showQrModal,
       mobileLanUrl,
       qrCodeImageUrl,

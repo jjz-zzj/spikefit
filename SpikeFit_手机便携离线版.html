@@ -82,9 +82,11 @@
           <span>📱</span>
           <span>手机扫码打开</span>
         </button>
-        <div @click="activeTab = 'sync'" class="flex items-center space-x-2 bg-slate-900/90 hover:bg-slate-800 border border-slate-700/80 px-3 py-1.5 rounded-xl cursor-pointer transition" title="点击进入同步设置">
-          <span class="w-2 h-2 rounded-full bg-brand-volt animate-pulse"></span>
+        <div @click="activeTab = 'sync'" class="flex items-center space-x-2 bg-slate-900/90 hover:bg-slate-800 border border-slate-700/80 px-3 py-1.5 rounded-xl cursor-pointer transition" title="点击进入同步设置与查看状态">
+          <span class="w-2 h-2 rounded-full" :class="isAutoSyncing ? 'bg-amber-400 animate-spin' : 'bg-brand-volt animate-pulse'"></span>
           <span class="text-xs font-mono font-bold text-slate-200">口令: {{ syncCode }}</span>
+          <span v-if="isAutoSyncing" class="text-[10px] text-amber-400 hidden sm:inline">● 同步中</span>
+          <span v-else-if="lastSyncTime" class="text-[10px] text-brand-volt/80 hidden sm:inline font-mono">({{ lastSyncTime }})</span>
         </div>
       </div>
     </header>
@@ -1545,6 +1547,24 @@
           </div>
           <button @click="copySyncCode" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs px-3.5 py-2 rounded-xl border border-slate-700 transition">
             复制口令
+          </button>
+        </div>
+
+        <!-- 自动双向实时云同步开关卡片 -->
+        <div class="flex items-center justify-between p-3.5 bg-slate-950/80 rounded-xl border border-slate-800">
+          <div class="flex items-center space-x-2.5">
+            <span class="text-base">⚡</span>
+            <div>
+              <div class="text-xs font-bold text-white flex items-center space-x-1.5">
+                <span>自动双向实时云同步</span>
+                <span v-if="isAutoSyncing" class="text-[10px] text-amber-400 animate-pulse">● 正在后台推送...</span>
+                <span v-else-if="lastSyncTime" class="text-[10px] text-brand-volt font-normal font-mono">● 最近同步于 {{ lastSyncTime }}</span>
+              </div>
+              <p class="text-[10px] text-slate-400 mt-0.5">每次修改打卡、录入餐食时静默推送到云端；手机打开或切回前台时自动拉取最新记录</p>
+            </div>
+          </div>
+          <button @click="toggleAutoSync" class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none shrink-0" :class="isAutoSyncEnabled ? 'bg-brand-volt' : 'bg-slate-700'">
+            <span class="inline-block h-4 w-4 transform rounded-full bg-slate-950 transition-transform" :class="isAutoSyncEnabled ? 'translate-x-6' : 'translate-x-1'"></span>
           </button>
         </div>
 
@@ -3935,15 +3955,16 @@ if (typeof module !== 'undefined' && module.exports) {
 
 
 /**
- * SpikeFit - 多端同步与持久化引擎
- * 支持：LocalStorage 纯离线优先、6位口令跨网络免登录云同步、JSON 备份与导出
+ * SpikeFit - 多端同步与持久化引擎 (v2.0 极简分片高可用版)
+ * 支持：LocalStorage 纯离线优先、动态数据脱敏轻量化、450字节智能分片中继、全自动后台静默双向同步
  */
 
 const SyncEngine = {
   STORAGE_KEY: 'spikefit_data_v1',
   SYNC_CODE_KEY: 'spikefit_sync_code',
-  REMOTE_OBJECT_ID_KEY: 'spikefit_remote_obj_id',
+  REMOTE_PARTS_KEY: 'spikefit_remote_parts',
   API_BASE: 'https://api.restful-api.dev/objects',
+  CHUNK_SIZE: 450, // 严控单片在 450 字符以内，彻底规避免费数据库 900 字节物理上限
 
   /**
    * 生成随机 6 位同步口令 (数字与大写字母组合)
@@ -4008,104 +4029,293 @@ const SyncEngine = {
   },
 
   /**
-   * 推送数据到免注册云端中继 (通过 6 位口令关联)
+   * 极简脱敏压缩：去除静态庞大图解与文本说明，仅保留动态核心数据
+   * 数据体积从 10,000+ 字符暴降至 300~900 字符
+   */
+  compress(fullData) {
+    if (!fullData) return {};
+    return {
+      v: 2,
+      ts: Date.now(),
+      clientTime: new Date().toISOString(),
+      // 用户生理与营养目标参数
+      u: {
+        w: fullData.userProfile?.weight || 78,
+        h: fullData.userProfile?.height || 174,
+        g: fullData.userProfile?.gender || 'male',
+        c: fullData.userProfile?.macroCarbsRatio || 3.0,
+        p: fullData.userProfile?.macroProteinRatio || 1.7,
+        f: fullData.userProfile?.macroFatRatio || 1.0,
+        vt: fullData.userProfile?.weeklyVolleyballTarget || 5
+      },
+      // 疲劳状态
+      ft: fullData.fatigue || { shoulder: 2, knee: 1 },
+      // 今日日期与模式
+      td: fullData.todayDate,
+      pm: fullData.planDateMode || 'today',
+      // 排球打卡
+      vb: fullData.todayVolleyball ? {
+        e: fullData.todayVolleyball.enabled ? 1 : 0,
+        d: fullData.todayVolleyball.duration || 60,
+        i: fullData.todayVolleyball.intensity || 'competitive'
+      } : null,
+      // 爬坡打卡
+      tm: fullData.todayTreadmill ? {
+        e: fullData.todayTreadmill.enabled ? 1 : 0,
+        d: fullData.todayTreadmill.duration || 30,
+        s: fullData.todayTreadmill.speed || 4.5,
+        inc: fullData.todayTreadmill.incline || 12
+      } : null,
+      // 今日训练动作 (仅存动作id与每组数据，不存静态庞大描述)
+      ex: (fullData.todayExercises || []).map(e => ({
+        id: e.id,
+        name: e.name,
+        sets: (e.sets || []).map(s => ({
+          sn: s.setNumber,
+          w: s.weight,
+          r: s.reps,
+          c: s.completed ? 1 : 0
+        }))
+      })),
+      // 今日餐食 (仅存数值与菜名)
+      ml: (fullData.todayMeals || []).map(m => ({
+        id: m.id,
+        t: m.time,
+        n: m.dishName,
+        cal: m.calories,
+        c: m.carbs,
+        p: m.protein,
+        f: m.fat,
+        fib: m.fiber || 0
+      })),
+      // 历史记录精简 (最近 7 条)
+      hl: (fullData.historyLogs || []).slice(0, 7).map(h => ({
+        id: h.id,
+        d: h.date,
+        n: h.name,
+        tc: h.totalCalories,
+        exs: (h.exercises || []).map(e => ({ id: e.id, name: e.name, setsCount: e.sets?.length || 0 }))
+      })),
+      // 日历日常餐食汇总 (精简版)
+      dm: fullData.dailyMeals ? Object.keys(fullData.dailyMeals).reduce((acc, k) => {
+        acc[k] = (fullData.dailyMeals[k] || []).map(m => ({
+          id: m.id,
+          t: m.time,
+          n: m.dishName,
+          cal: m.calories,
+          c: m.carbs,
+          p: m.protein,
+          f: m.fat
+        }));
+        return acc;
+      }, {}) : {}
+    };
+  },
+
+  /**
+   * 解码并还原完整业务对象
+   */
+  decompress(compactData) {
+    if (!compactData) return null;
+    if (compactData.v !== 2) return compactData; // 兼容旧版
+
+    const u = compactData.u || {};
+    const vb = compactData.vb || {};
+    const tm = compactData.tm || {};
+
+    return {
+      userProfile: {
+        weight: u.w || 78,
+        height: u.h || 174,
+        gender: u.g || 'male',
+        macroCarbsRatio: u.c || 3.0,
+        macroProteinRatio: u.p || 1.7,
+        macroFatRatio: u.f || 1.0,
+        weeklyVolleyballTarget: u.vt || 5
+      },
+      fatigue: compactData.ft || { shoulder: 2, knee: 1 },
+      todayDate: compactData.td,
+      planDateMode: compactData.pm || 'today',
+      todayVolleyball: {
+        enabled: vb.e === 1,
+        duration: vb.d || 60,
+        intensity: vb.i || 'competitive'
+      },
+      todayTreadmill: {
+        enabled: tm.e === 1,
+        duration: tm.d || 30,
+        speed: tm.s || 4.5,
+        incline: tm.inc || 12
+      },
+      // 结合本地 EXERCISE_DATABASE 还原动作完整属性
+      todayExercises: (compactData.ex || []).map(item => {
+        const dbEx = (typeof EXERCISE_DATABASE !== 'undefined') ? EXERCISE_DATABASE.find(e => e.id === item.id) : null;
+        return {
+          ...(dbEx || {}),
+          id: item.id,
+          name: item.name || dbEx?.name || item.id,
+          sets: (item.sets || []).map(s => ({
+            setNumber: s.sn,
+            weight: s.w,
+            reps: s.r,
+            completed: s.c === 1
+          }))
+        };
+      }),
+      todayMeals: (compactData.ml || []).map(m => ({
+        id: m.id,
+        time: m.t,
+        dishName: m.n,
+        calories: m.cal,
+        carbs: m.c,
+        protein: m.p,
+        fat: m.f,
+        fiber: m.fib || 0
+      })),
+      historyLogs: (compactData.hl || []).map(h => ({
+        id: h.id,
+        date: h.d,
+        name: h.n,
+        totalCalories: h.tc,
+        exercises: (h.exs || []).map(e => ({ id: e.id, name: e.name, sets: new Array(e.setsCount || 0).fill({ completed: true }) }))
+      })),
+      dailyMeals: compactData.dm || {}
+    };
+  },
+
+  /**
+   * 推送数据到云端中继 (多片安全存储，彻底规避 900 字节上限)
    */
   async pushToCloud(data, syncCode) {
     const code = (syncCode || this.getOrCreateSyncCode()).toUpperCase();
-    const payload = {
-      name: `spikefit_user_${code}`,
-      data: {
-        syncCode: code,
-        clientTime: new Date().toISOString(),
-        payloadJson: JSON.stringify(data)
-      }
-    };
+    const compactObj = this.compress(data);
+    const jsonStr = JSON.stringify(compactObj);
 
-    let remoteId = localStorage.getItem(this.REMOTE_OBJECT_ID_KEY + '_' + code);
+    // 切分为不超过 CHUNK_SIZE 的小分片
+    const chunks = [];
+    for (let i = 0; i < jsonStr.length; i += this.CHUNK_SIZE) {
+      chunks.push(jsonStr.substring(i, i + this.CHUNK_SIZE));
+    }
+
+    const totalParts = chunks.length;
+    let savedPartIds = [];
+    try {
+      const rawStoredIds = localStorage.getItem(this.REMOTE_PARTS_KEY + '_' + code);
+      if (rawStoredIds) savedPartIds = JSON.parse(rawStoredIds);
+    } catch (e) {}
+
+    const newPartIds = [];
 
     try {
-      let resp;
-      if (remoteId) {
-        // 尝试覆盖更新现有远程对象
-        resp = await fetch(`${this.API_BASE}/${remoteId}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
-      }
-
-      // 若没有 remoteId 或更新失败（对象可能过期），则创建新对象
-      if (!resp || !resp.ok) {
-        resp = await fetch(this.API_BASE, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
-        if (resp.ok) {
-          const resData = await resp.json();
-          if (resData && resData.id) {
-            localStorage.setItem(this.REMOTE_OBJECT_ID_KEY + '_' + code, resData.id);
+      // 逐片并发/顺序上传
+      for (let i = 0; i < totalParts; i++) {
+        const payload = {
+          name: `spikefit_${code}_p${i}`,
+          data: {
+            syncCode: code,
+            partIdx: i,
+            totalParts: totalParts,
+            clientTime: new Date().toISOString(),
+            chunk: chunks[i]
           }
+        };
+
+        const existingId = savedPartIds[i];
+        let resp = null;
+        if (existingId) {
+          try {
+            resp = await fetch(`${this.API_BASE}/${existingId}`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload)
+            });
+          } catch (err) {}
+        }
+
+        if (!resp || !resp.ok) {
+          resp = await fetch(this.API_BASE, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+        }
+
+        if (resp && resp.ok) {
+          const resData = await resp.json();
+          newPartIds.push(resData.id || existingId);
+        } else {
+          throw new Error(`分片 ${i} 上传失败 (HTTP ${resp ? resp.status : 'ERR'})`);
         }
       }
 
-      if (resp && resp.ok) {
-        return { success: true, message: '已成功同步至云端！' };
-      } else {
-        throw new Error('云端服务响应异常: ' + (resp ? resp.status : '无响应'));
-      }
+      localStorage.setItem(this.REMOTE_PARTS_KEY + '_' + code, JSON.stringify(newPartIds));
+      return { success: true, message: `已成功同步至云端 (${totalParts} 分片极速中继)` };
     } catch (err) {
-      console.warn('云端推送提示:', err);
+      console.warn('云端推送异常:', err);
       return { 
         success: false, 
-        message: '云端同步暂不可用或网络受限，本地数据已安全保存在手机/电脑中。' 
+        message: '云端同步暂不可用或网络超时，本地数据已安全保存在设备中。' 
       };
     }
   },
 
   /**
-   * 从云端拉取匹配口令的数据
+   * 从云端拉取并重装拼接
    */
   async pullFromCloud(syncCode) {
     const code = (syncCode || this.getOrCreateSyncCode()).toUpperCase();
-    let remoteId = localStorage.getItem(this.REMOTE_OBJECT_ID_KEY + '_' + code);
+    let savedPartIds = [];
+    try {
+      const raw = localStorage.getItem(this.REMOTE_PARTS_KEY + '_' + code);
+      if (raw) savedPartIds = JSON.parse(raw);
+    } catch (e) {}
 
     try {
-      let targetObj = null;
+      let chunks = [];
+      let lastTime = '';
 
-      if (remoteId) {
-        const resp = await fetch(`${this.API_BASE}/${remoteId}`);
-        if (resp.ok) {
-          const item = await resp.json();
-          if (item && item.data && item.data.syncCode === code) {
-            targetObj = item;
-          }
+      // 方式 1：如果有已记录的 partIds，直接并发拉取
+      if (savedPartIds && savedPartIds.length > 0) {
+        const fetchPromises = savedPartIds.map(id => 
+          fetch(`${this.API_BASE}/${id}`)
+            .then(r => r.ok ? r.json() : null)
+            .catch(() => null)
+        );
+        const results = await Promise.all(fetchPromises);
+        const validResults = results.filter(r => r && r.data && r.data.syncCode === code);
+        if (validResults.length === savedPartIds.length) {
+          validResults.sort((a, b) => (a.data.partIdx || 0) - (b.data.partIdx || 0));
+          chunks = validResults.map(r => r.data.chunk);
+          lastTime = validResults[0].data.clientTime || '';
         }
       }
 
-      // 如果未找到，尝试查询最近对象
-      if (!targetObj) {
+      // 方式 2：若方式 1 未能拼齐，从公共列表按名称前缀匹配
+      if (chunks.length === 0) {
         const resp = await fetch(this.API_BASE);
         if (resp.ok) {
           const list = await resp.json();
           if (Array.isArray(list)) {
-            const matched = list.filter(item => item.name === `spikefit_user_${code}`);
+            const matched = list.filter(item => item.name && item.name.startsWith(`spikefit_${code}_p`));
             if (matched.length > 0) {
-              targetObj = matched[matched.length - 1]; // 取最新的
-              if (targetObj && targetObj.id) {
-                localStorage.setItem(this.REMOTE_OBJECT_ID_KEY + '_' + code, targetObj.id);
-              }
+              matched.sort((a, b) => (a.data?.partIdx || 0) - (b.data?.partIdx || 0));
+              chunks = matched.map(m => m.data?.chunk || '');
+              lastTime = matched[0]?.data?.clientTime || '';
+              // 缓存对应 part IDs
+              localStorage.setItem(this.REMOTE_PARTS_KEY + '_' + code, JSON.stringify(matched.map(m => m.id)));
             }
           }
         }
       }
 
-      if (targetObj && targetObj.data && targetObj.data.payloadJson) {
-        const parsed = JSON.parse(targetObj.data.payloadJson);
-        return { success: true, data: parsed, updatedAt: targetObj.data.clientTime };
+      if (chunks.length > 0) {
+        const fullJsonStr = chunks.join('');
+        const parsed = JSON.parse(fullJsonStr);
+        const restored = this.decompress(parsed);
+        return { success: true, data: restored, updatedAt: lastTime };
       }
 
-      return { success: false, message: `未在云端找到口令【${code}】的数据，请确认另一端是否已点击“上传同步”。` };
+      return { success: false, message: `未在云端找到口令【${code}】的数据，请确认另一端是否已同步。` };
     } catch (err) {
       console.warn('云端拉取提示:', err);
       return { success: false, message: '网络连接失败，请检查手机网络或稍后重试。' };
@@ -4139,7 +4349,6 @@ const SyncEngine = {
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = { SyncEngine };
 }
-
 
 /**
  * SpikeFit - 前端交互逻辑与状态管理 (Vue 3)
@@ -4511,6 +4720,13 @@ const app = createApp({
     const syncStatus = ref({ loading: false, message: '', type: '' });
     const showQrModal = ref(false);
     const mobileLanUrl = ref(window.location.href);
+
+    // 自动双向实时云同步引擎状态
+    const isAutoSyncEnabled = ref(localStorage.getItem('spikefit_auto_sync') !== 'false');
+    const isAutoSyncing = ref(false);
+    const lastSyncTime = ref(localStorage.getItem('spikefit_last_sync_time') || '');
+    let autoSyncTimer = null;
+    let lastPullTimestamp = 0;
 
     // 动作库检索与过滤
     const librarySearch = ref('');
@@ -5379,7 +5595,43 @@ const app = createApp({
     };
 
     // ================= 数据持久化与云同步 =================
-    const saveState = () => {
+    const triggerAutoSync = () => {
+      if (!isAutoSyncEnabled.value) return;
+      if (autoSyncTimer) clearTimeout(autoSyncTimer);
+      autoSyncTimer = setTimeout(async () => {
+        try {
+          isAutoSyncing.value = true;
+          syncCurrentFormToDict();
+          syncMealsToDict();
+          const currentData = {
+            userProfile: userProfile.value,
+            fatigue: fatigue.value,
+            todayDate: todayDate.value,
+            planDateMode: planDateMode.value,
+            dailyPlans: dailyPlans.value,
+            dailyMeals: dailyMeals.value,
+            todayVolleyball: todayVolleyball.value,
+            todayTreadmill: todayTreadmill.value,
+            todayExercises: todayExercises.value,
+            todayMeals: todayMeals.value,
+            geminiApiKey: geminiApiKey.value,
+            historyLogs: historyLogs.value
+          };
+          const res = await SyncEngine.pushToCloud(currentData, syncCode.value);
+          if (res && res.success) {
+            const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            lastSyncTime.value = timeStr;
+            localStorage.setItem('spikefit_last_sync_time', timeStr);
+          }
+        } catch (e) {
+          console.warn('自动后台静默推送异常:', e);
+        } finally {
+          isAutoSyncing.value = false;
+        }
+      }, 2000);
+    };
+
+    const saveState = (skipAutoPush = false) => {
       syncCurrentFormToDict();
       syncMealsToDict();
       const stateToSave = {
@@ -5397,6 +5649,64 @@ const app = createApp({
         historyLogs: historyLogs.value
       };
       SyncEngine.saveLocalData(stateToSave);
+      if (!skipAutoPush) {
+        triggerAutoSync();
+      }
+    };
+
+    const checkAndAutoPull = async (silent = true) => {
+      if (!isAutoSyncEnabled.value || isAutoSyncing.value) return;
+      const now = Date.now();
+      // 节流：拉取间隔至少 8 秒
+      if (now - lastPullTimestamp < 8000) return;
+      lastPullTimestamp = now;
+
+      try {
+        const res = await SyncEngine.pullFromCloud(syncCode.value);
+        if (res && res.success && res.data) {
+          const cloudData = res.data;
+          const localRaw = localStorage.getItem(SyncEngine.STORAGE_KEY);
+          const localData = localRaw ? JSON.parse(localRaw) : null;
+
+          const cloudTime = res.updatedAt ? new Date(res.updatedAt).getTime() : 0;
+          const localTime = localData && localData.updatedAt ? new Date(localData.updatedAt).getTime() : 0;
+
+          // 若云端更新时间晚于本地时间（或本地尚无记录），自动合并
+          if (!localTime || cloudTime > localTime) {
+            if (cloudData.userProfile) userProfile.value = { ...userProfile.value, ...cloudData.userProfile };
+            if (cloudData.fatigue) fatigue.value = cloudData.fatigue;
+            if (cloudData.historyLogs) historyLogs.value = cloudData.historyLogs;
+            if (cloudData.dailyPlans) dailyPlans.value = cloudData.dailyPlans;
+            if (cloudData.dailyMeals) dailyMeals.value = cloudData.dailyMeals;
+            if (cloudData.todayMeals) todayMeals.value = cloudData.todayMeals;
+            if (cloudData.geminiApiKey) geminiApiKey.value = cloudData.geminiApiKey;
+
+            loadPlanFromDict(activePlanDate.value);
+            loadMealsFromDict(activePlanDate.value);
+
+            saveState(true); // 仅保存本地，不触发循环反推
+            const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            lastSyncTime.value = timeStr;
+            localStorage.setItem('spikefit_last_sync_time', timeStr);
+            if (!silent) {
+              showToast('☁️ 已自动同步最新云端记录');
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('自动拉取云端记录提示:', err);
+      }
+    };
+
+    const toggleAutoSync = () => {
+      isAutoSyncEnabled.value = !isAutoSyncEnabled.value;
+      localStorage.setItem('spikefit_auto_sync', isAutoSyncEnabled.value ? 'true' : 'false');
+      if (isAutoSyncEnabled.value) {
+        showToast('⚡ 已开启自动双向实时云同步');
+        triggerAutoSync();
+      } else {
+        showToast('⏸️ 已关闭自动同步（可随时手动点击上传/拉取）');
+      }
     };
 
     const loadState = () => {
@@ -5474,6 +5784,11 @@ const app = createApp({
         message: res.message, 
         type: res.success ? 'success' : 'warning' 
       };
+      if (res.success) {
+        const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        lastSyncTime.value = timeStr;
+        localStorage.setItem('spikefit_last_sync_time', timeStr);
+      }
       showToast(res.message);
     };
 
@@ -5499,7 +5814,10 @@ const app = createApp({
           inputSyncCode.value = '';
         }
 
-        saveState();
+        saveState(true);
+        const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        lastSyncTime.value = timeStr;
+        localStorage.setItem('spikefit_last_sync_time', timeStr);
         syncStatus.value = { loading: false, message: '✅ 同步拉取完成！数据已更新', type: 'success' };
         showToast('✅ 数据已成功同步！');
       } else {
@@ -5584,8 +5902,25 @@ const app = createApp({
     onMounted(() => {
       loadState();
       checkServerInfo();
+
+      if (isAutoSyncEnabled.value) {
+        checkAndAutoPull(true);
+      }
+
+      // 监听页面切回前台（手机唤醒/切回浏览器标签）自动拉取最新云端记录
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible' && isAutoSyncEnabled.value) {
+          checkAndAutoPull(false);
+        }
+      });
+      window.addEventListener('focus', () => {
+        if (isAutoSyncEnabled.value) {
+          checkAndAutoPull(true);
+        }
+      });
+
       if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('./sw.js?v=20261124_02').then(reg => {
+        navigator.serviceWorker.register('./sw.js?v=20261124_06').then(reg => {
           reg.update();
         }).catch(err => {
           console.log('SW registration note:', err);
@@ -5650,6 +5985,10 @@ const app = createApp({
       syncCode,
       inputSyncCode,
       syncStatus,
+      isAutoSyncEnabled,
+      isAutoSyncing,
+      lastSyncTime,
+      toggleAutoSync,
       showQrModal,
       mobileLanUrl,
       qrCodeImageUrl,

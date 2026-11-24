@@ -82,9 +82,11 @@
           <span>📱</span>
           <span>手机扫码打开</span>
         </button>
-        <div @click="activeTab = 'sync'" class="flex items-center space-x-2 bg-slate-900/90 hover:bg-slate-800 border border-slate-700/80 px-3 py-1.5 rounded-xl cursor-pointer transition" title="点击进入同步设置">
-          <span class="w-2 h-2 rounded-full bg-brand-volt animate-pulse"></span>
+        <div @click="activeTab = 'sync'" class="flex items-center space-x-2 bg-slate-900/90 hover:bg-slate-800 border border-slate-700/80 px-3 py-1.5 rounded-xl cursor-pointer transition" title="点击进入同步设置与查看状态">
+          <span class="w-2 h-2 rounded-full" :class="isAutoSyncing ? 'bg-amber-400 animate-spin' : 'bg-brand-volt animate-pulse'"></span>
           <span class="text-xs font-mono font-bold text-slate-200">口令: {{ syncCode }}</span>
+          <span v-if="isAutoSyncing" class="text-[10px] text-amber-400 hidden sm:inline">● 同步中</span>
+          <span v-else-if="lastSyncTime" class="text-[10px] text-brand-volt/80 hidden sm:inline font-mono">({{ lastSyncTime }})</span>
         </div>
       </div>
     </header>
@@ -1545,6 +1547,24 @@
           </div>
           <button @click="copySyncCode" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs px-3.5 py-2 rounded-xl border border-slate-700 transition">
             复制口令
+          </button>
+        </div>
+
+        <!-- 自动双向实时云同步开关卡片 -->
+        <div class="flex items-center justify-between p-3.5 bg-slate-950/80 rounded-xl border border-slate-800">
+          <div class="flex items-center space-x-2.5">
+            <span class="text-base">⚡</span>
+            <div>
+              <div class="text-xs font-bold text-white flex items-center space-x-1.5">
+                <span>自动双向实时云同步</span>
+                <span v-if="isAutoSyncing" class="text-[10px] text-amber-400 animate-pulse">● 正在后台推送...</span>
+                <span v-else-if="lastSyncTime" class="text-[10px] text-brand-volt font-normal font-mono">● 最近同步于 {{ lastSyncTime }}</span>
+              </div>
+              <p class="text-[10px] text-slate-400 mt-0.5">每次修改打卡、录入餐食时静默推送到云端；手机打开或切回前台时自动拉取最新记录</p>
+            </div>
+          </div>
+          <button @click="toggleAutoSync" class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none shrink-0" :class="isAutoSyncEnabled ? 'bg-brand-volt' : 'bg-slate-700'">
+            <span class="inline-block h-4 w-4 transform rounded-full bg-slate-950 transition-transform" :class="isAutoSyncEnabled ? 'translate-x-6' : 'translate-x-1'"></span>
           </button>
         </div>
 
