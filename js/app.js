@@ -258,13 +258,16 @@ const app = createApp({
       return planDateMode.value === 'today' ? todayDate.value : tomorrowDate.value;
     });
 
-    // 用户基础资料与体能参数 (按用户实际设定：身高 174cm，体重 76kg)
+    // 用户基础资料与体能参数 (按用户实际设定：身高 174cm，体重 78kg，三大营养素：3倍碳水 / 1.7倍蛋白 / 1倍脂肪)
     const userProfile = ref({
       gender: 'male',
       age: 25,
       height: 174,
-      weight: 76,
-      weeklyVolleyballTarget: 5
+      weight: 78,
+      weeklyVolleyballTarget: 5,
+      macroCarbsRatio: 3.0,    // 碳水系数 (g/kg) - 3.0x
+      macroProteinRatio: 1.7,  // 蛋白质系数 (g/kg) - 1.7x
+      macroFatRatio: 1.0       // 脂肪系数 (g/kg) - 1.0x
     });
 
     // 基础代谢率 (BMR) - 运动生理学黄金 Mifflin-St Jeor 算法
@@ -535,6 +538,48 @@ const app = createApp({
         summary: def.summary
       };
     });
+
+    // 三大营养素科学目标摄入量与达成对比 (用户设定：体重 78kg，3倍碳水，1.7倍蛋白质，1倍脂肪)
+    const targetMacros = computed(() => {
+      return CalorieCalculator.calculateTargetMacros(
+        userProfile.value.weight,
+        userProfile.value.macroCarbsRatio,
+        userProfile.value.macroProteinRatio,
+        userProfile.value.macroFatRatio
+      );
+    });
+
+    const macrosComparison = computed(() => {
+      return CalorieCalculator.compareMacros(
+        todayNutritionTotal.value,
+        targetMacros.value
+      );
+    });
+
+    // 营养方案预设切换与参数抽屉控制
+    const activeMacroPreset = ref('volleyball'); // 'volleyball' | 'lean' | 'carb_loading' | 'custom'
+    const showMacroConfigDrawer = ref(false);
+
+    const applyMacroPreset = (preset) => {
+      activeMacroPreset.value = preset;
+      if (preset === 'volleyball') {
+        userProfile.value.macroCarbsRatio = 3.0;
+        userProfile.value.macroProteinRatio = 1.7;
+        userProfile.value.macroFatRatio = 1.0;
+        showToast('已切换至【排球专项高能与恢复】配比 (3.0x 碳水 / 1.7x 蛋白 / 1.0x 脂肪)');
+      } else if (preset === 'lean') {
+        userProfile.value.macroCarbsRatio = 2.0;
+        userProfile.value.macroProteinRatio = 2.0;
+        userProfile.value.macroFatRatio = 0.8;
+        showToast('已切换至【低脂紧致/减脂塑形】配比 (2.0x 碳水 / 2.0x 蛋白 / 0.8x 脂肪)');
+      } else if (preset === 'carb_loading') {
+        userProfile.value.macroCarbsRatio = 4.5;
+        userProfile.value.macroProteinRatio = 1.5;
+        userProfile.value.macroFatRatio = 0.8;
+        showToast('已切换至【重大比赛/赛前爆发充碳】配比 (4.5x 碳水 / 1.5x 蛋白 / 0.8x 脂肪)');
+      }
+      saveState();
+    };
 
     // 二维码图片链接
     const qrCodeImageUrl = computed(() => {
@@ -1136,7 +1181,15 @@ const app = createApp({
       const localData = SyncEngine.loadLocalData();
       
       if (localData) {
-        if (localData.userProfile) userProfile.value = { ...userProfile.value, ...localData.userProfile };
+        if (localData.userProfile) {
+          userProfile.value = { ...userProfile.value, ...localData.userProfile };
+          if (typeof userProfile.value.macroCarbsRatio === 'undefined') userProfile.value.macroCarbsRatio = 3.0;
+          if (typeof userProfile.value.macroProteinRatio === 'undefined') userProfile.value.macroProteinRatio = 1.7;
+          if (typeof userProfile.value.macroFatRatio === 'undefined') userProfile.value.macroFatRatio = 1.0;
+          if (userProfile.value.weight === 76) {
+            userProfile.value.weight = 78;
+          }
+        }
         if (localData.fatigue) fatigue.value = { ...fatigue.value, ...localData.fatigue };
         if (localData.historyLogs && Array.isArray(localData.historyLogs)) {
           historyLogs.value = localData.historyLogs;
@@ -1344,6 +1397,11 @@ const app = createApp({
       netEnergyBalance,
       bmrCalories,
       dailyEnergyDeficit,
+      targetMacros,
+      macrosComparison,
+      activeMacroPreset,
+      showMacroConfigDrawer,
+      applyMacroPreset,
       dailyMeals,
       calendarYear,
       calendarMonth,

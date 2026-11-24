@@ -194,7 +194,7 @@
             <span class="text-xl">⚖️</span>
             <div>
               <h3 class="font-extrabold text-sm text-white">全日热量收支与缺口天平</h3>
-              <p class="text-[10px] text-slate-400">身高 {{ userProfile.height }}cm · 体重 {{ userProfile.weight }}kg · 基础代谢 (BMR) {{ bmrCalories }} kcal</p>
+              <p class="text-[10px] text-slate-400">身高 {{ userProfile.height }}cm · 体重 {{ userProfile.weight }}kg · 基础代谢 (BMR) {{ bmrCalories }} kcal · 目标热量 {{ targetMacros.totalTargetCalories }} kcal</p>
             </div>
           </div>
           <span class="text-[11px] font-bold px-2.5 py-1 rounded-full border" :class="dailyEnergyDeficit.deficit >= 0 ? 'bg-emerald-500/10 text-brand-volt border-emerald-500/30' : 'bg-orange-500/10 text-brand-orange border-orange-500/30'">
@@ -223,6 +223,31 @@
             <span class="text-[9px] block opacity-80 mb-0.5">= 净热量缺口</span>
             <span class="font-num text-xl font-black">{{ dailyEnergyDeficit.deficit >= 0 ? '+' : '' }}{{ dailyEnergyDeficit.deficit }}</span>
             <span class="text-[9px] block opacity-70">KCAL</span>
+          </div>
+        </div>
+
+        <!-- 三大营养素快速达成状态条 (按体重78kg：3x碳水 / 1.7x蛋白 / 1x脂肪) -->
+        <div class="pt-2 border-t border-slate-800/80 grid grid-cols-3 gap-2 text-[11px]">
+          <div class="bg-slate-950/60 p-2 rounded-lg border border-slate-800/60 flex items-center justify-between">
+            <div>
+              <span class="text-slate-400 block text-[10px]">🍚 碳水 (目标{{ targetMacros.carbsGrams }}g)</span>
+              <span class="font-bold text-white font-num">{{ todayNutritionTotal.carbs }} / {{ targetMacros.carbsGrams }}g</span>
+            </div>
+            <span class="text-[10px] font-bold font-num" :class="macrosComparison.carbs.isCompleted ? 'text-brand-volt' : 'text-amber-400'">{{ macrosComparison.carbs.progress }}%</span>
+          </div>
+          <div class="bg-slate-950/60 p-2 rounded-lg border border-slate-800/60 flex items-center justify-between">
+            <div>
+              <span class="text-slate-400 block text-[10px]">🥩 蛋白 (目标{{ targetMacros.proteinGrams }}g)</span>
+              <span class="font-bold text-white font-num">{{ todayNutritionTotal.protein }} / {{ targetMacros.proteinGrams }}g</span>
+            </div>
+            <span class="text-[10px] font-bold font-num" :class="macrosComparison.protein.isCompleted ? 'text-brand-volt' : 'text-blue-400'">{{ macrosComparison.protein.progress }}%</span>
+          </div>
+          <div class="bg-slate-950/60 p-2 rounded-lg border border-slate-800/60 flex items-center justify-between">
+            <div>
+              <span class="text-slate-400 block text-[10px]">🥑 脂肪 (目标{{ targetMacros.fatGrams }}g)</span>
+              <span class="font-bold text-white font-num">{{ todayNutritionTotal.fat }} / {{ targetMacros.fatGrams }}g</span>
+            </div>
+            <span class="text-[10px] font-bold font-num" :class="macrosComparison.fat.isCompleted ? 'text-brand-volt' : 'text-rose-400'">{{ macrosComparison.fat.progress }}%</span>
           </div>
         </div>
 
@@ -853,7 +878,7 @@
           <div class="bg-slate-950/70 p-2.5 rounded-xl border border-slate-800">
             <span class="text-[10px] text-slate-400 block mb-0.5">🧘 基础代谢 (BMR)</span>
             <span class="font-num text-lg font-bold text-blue-400">{{ bmrCalories }}</span>
-            <span class="text-[9px] text-slate-500 block">174cm / 76kg</span>
+            <span class="text-[9px] text-slate-500 block">174cm / {{ userProfile.weight }}kg</span>
           </div>
           <div class="bg-slate-950/70 p-2.5 rounded-xl border border-slate-800">
             <span class="text-[10px] text-slate-400 block mb-0.5">⚡ 运动总消耗</span>
@@ -874,19 +899,271 @@
           </div>
         </div>
 
-        <!-- 三大营养素柱状条 -->
+        <!-- 三大营养素柱状条与供能比 -->
         <div class="pt-2 border-t border-slate-800/80 grid grid-cols-3 gap-2 text-xs text-center">
           <div class="bg-slate-900/40 p-2 rounded-lg">
             <span class="text-slate-400 text-[10px] block">🍚 碳水化合物</span>
             <span class="font-bold text-white font-num text-sm">{{ todayNutritionTotal.carbs }} g</span>
+            <span class="text-[9px] text-slate-500 block mt-0.5">目标: {{ targetMacros.carbsGrams }}g</span>
           </div>
           <div class="bg-slate-900/40 p-2 rounded-lg">
             <span class="text-slate-400 text-[10px] block">🥩 优质蛋白质</span>
             <span class="font-bold text-amber-400 font-num text-sm">{{ todayNutritionTotal.protein }} g</span>
+            <span class="text-[9px] text-slate-500 block mt-0.5">目标: {{ targetMacros.proteinGrams }}g</span>
           </div>
           <div class="bg-slate-900/40 p-2 rounded-lg">
             <span class="text-slate-400 text-[10px] block">🥑 健康脂肪</span>
             <span class="font-bold text-slate-300 font-num text-sm">{{ todayNutritionTotal.fat }} g</span>
+            <span class="text-[9px] text-slate-500 block mt-0.5">目标: {{ targetMacros.fatGrams }}g</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- 三大营养素科学目标摄入与达成追踪 (排球运动员定制算法：3.0x碳水 / 1.7x蛋白 / 1.0x脂肪) -->
+      <section class="glass-panel rounded-2xl p-5 border border-slate-800 space-y-4 relative overflow-hidden">
+        <!-- 装饰渐变光晕 -->
+        <div class="absolute -right-6 -bottom-6 w-32 h-32 bg-blue-500/10 rounded-full blur-2xl pointer-events-none"></div>
+
+        <!-- 头部标题与控制按钮 -->
+        <div class="flex items-center justify-between">
+          <div class="flex items-center space-x-2">
+            <span class="text-2xl">🎯</span>
+            <div>
+              <div class="flex items-center space-x-2">
+                <h3 class="text-base font-bold text-white">三大营养素科学目标摄入量</h3>
+                <span class="text-[10px] bg-brand-volt/15 text-brand-volt font-bold px-2 py-0.5 rounded-full border border-brand-volt/30">
+                  目标总热量 {{ targetMacros.totalTargetCalories }} kcal
+                </span>
+              </div>
+              <p class="text-xs text-slate-400 mt-0.5">
+                基于体重 <strong class="text-white">{{ userProfile.weight }} kg</strong> · 碳水 {{ userProfile.macroCarbsRatio }}x ({{ targetMacros.carbsGrams }}g) · 蛋白 {{ userProfile.macroProteinRatio }}x ({{ targetMacros.proteinGrams }}g) · 脂肪 {{ userProfile.macroFatRatio }}x ({{ targetMacros.fatGrams }}g)
+              </p>
+            </div>
+          </div>
+          <button @click="showMacroConfigDrawer = !showMacroConfigDrawer" class="text-xs bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white px-3 py-1.5 rounded-xl border border-slate-700 transition flex items-center space-x-1 font-bold">
+            <span>⚙️</span>
+            <span>{{ showMacroConfigDrawer ? '收起设置' : '微调参数' }}</span>
+          </button>
+        </div>
+
+        <!-- 方案快捷预设 Pills -->
+        <div class="flex items-center space-x-2 overflow-x-auto pb-1 text-xs">
+          <span class="text-slate-500 text-[11px] shrink-0">快捷方案：</span>
+          <button @click="applyMacroPreset('volleyball')" :class="userProfile.macroCarbsRatio === 3.0 && userProfile.macroProteinRatio === 1.7 && userProfile.macroFatRatio === 1.0 ? 'bg-amber-400 text-black font-extrabold shadow-sm' : 'bg-slate-900 text-slate-300 hover:text-white border border-slate-800'" class="px-2.5 py-1 rounded-lg transition shrink-0">
+            🏐 排球高能与恢复 (3.0C / 1.7P / 1.0F)
+          </button>
+          <button @click="applyMacroPreset('lean')" :class="userProfile.macroCarbsRatio === 2.0 && userProfile.macroProteinRatio === 2.0 && userProfile.macroFatRatio === 0.8 ? 'bg-amber-400 text-black font-extrabold shadow-sm' : 'bg-slate-900 text-slate-300 hover:text-white border border-slate-800'" class="px-2.5 py-1 rounded-lg transition shrink-0">
+            ⚡ 减脂塑形 (2.0C / 2.0P / 0.8F)
+          </button>
+          <button @click="applyMacroPreset('carb_loading')" :class="userProfile.macroCarbsRatio === 4.5 && userProfile.macroProteinRatio === 1.5 && userProfile.macroFatRatio === 0.8 ? 'bg-amber-400 text-black font-extrabold shadow-sm' : 'bg-slate-900 text-slate-300 hover:text-white border border-slate-800'" class="px-2.5 py-1 rounded-lg transition shrink-0">
+            🏆 赛前充碳 (4.5C / 1.5P / 0.8F)
+          </button>
+        </div>
+
+        <!-- 可折叠的自定义参数微调抽屉 -->
+        <div v-if="showMacroConfigDrawer" class="bg-slate-950/80 p-4 rounded-xl border border-slate-700/80 space-y-3 animate-fadeIn text-xs">
+          <div class="flex items-center justify-between text-slate-300 font-bold border-b border-slate-800 pb-2">
+            <span>⚙️ 调节体重与三大营养素每公斤摄入倍数</span>
+            <span class="text-slate-400 text-[10px]">即时重算 · 自动保存</span>
+          </div>
+
+          <!-- 体重设置 -->
+          <div>
+            <div class="flex justify-between mb-1">
+              <span class="text-slate-400">当前体重 (kg):</span>
+              <span class="font-bold text-brand-volt font-num text-sm">{{ userProfile.weight }} kg</span>
+            </div>
+            <input type="range" min="45" max="120" step="0.5" v-model.number="userProfile.weight" @change="saveState" class="w-full accent-brand-volt cursor-pointer">
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <!-- 碳水倍率 -->
+            <div class="bg-slate-900/90 p-2.5 rounded-xl border border-slate-800">
+              <div class="flex justify-between mb-1">
+                <span class="text-slate-400">🍚 碳水系数:</span>
+                <span class="font-bold text-amber-400 font-num">{{ userProfile.macroCarbsRatio }} g/kg</span>
+              </div>
+              <input type="range" min="1.0" max="6.0" step="0.1" v-model.number="userProfile.macroCarbsRatio" @change="saveState" class="w-full accent-amber-400 cursor-pointer">
+              <span class="text-[10px] text-slate-500 block mt-1">目标: {{ targetMacros.carbsGrams }}g ({{ targetMacros.carbsCalories }} kcal)</span>
+            </div>
+
+            <!-- 蛋白质倍率 -->
+            <div class="bg-slate-900/90 p-2.5 rounded-xl border border-slate-800">
+              <div class="flex justify-between mb-1">
+                <span class="text-slate-400">🥩 蛋白质系数:</span>
+                <span class="font-bold text-blue-400 font-num">{{ userProfile.macroProteinRatio }} g/kg</span>
+              </div>
+              <input type="range" min="1.0" max="3.0" step="0.1" v-model.number="userProfile.macroProteinRatio" @change="saveState" class="w-full accent-blue-400 cursor-pointer">
+              <span class="text-[10px] text-slate-500 block mt-1">目标: {{ targetMacros.proteinGrams }}g ({{ targetMacros.proteinCalories }} kcal)</span>
+            </div>
+
+            <!-- 脂肪倍率 -->
+            <div class="bg-slate-900/90 p-2.5 rounded-xl border border-slate-800">
+              <div class="flex justify-between mb-1">
+                <span class="text-slate-400">🥑 脂肪系数:</span>
+                <span class="font-bold text-rose-400 font-num">{{ userProfile.macroFatRatio }} g/kg</span>
+              </div>
+              <input type="range" min="0.5" max="2.0" step="0.1" v-model.number="userProfile.macroFatRatio" @change="saveState" class="w-full accent-rose-400 cursor-pointer">
+              <span class="text-[10px] text-slate-500 block mt-1">目标: {{ targetMacros.fatGrams }}g ({{ targetMacros.fatCalories }} kcal)</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 三大营养素目标与实际摄入对比三联卡 -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+          
+          <!-- 1. 碳水化合物卡片 (3.0x -> 234g) -->
+          <div class="bg-slate-950/60 p-4 rounded-xl border border-slate-800 space-y-2.5 flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between mb-1">
+                <span class="font-bold text-white text-xs flex items-center space-x-1.5">
+                  <span>🍚</span>
+                  <span>碳水化合物 ({{ userProfile.macroCarbsRatio }}x)</span>
+                </span>
+                <span class="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full" :class="macrosComparison.carbs.isCompleted ? 'bg-emerald-500/20 text-brand-volt border border-emerald-500/30' : 'bg-slate-800 text-slate-400'">
+                  {{ macrosComparison.carbs.isCompleted ? '已达标' : '待补充' }}
+                </span>
+              </div>
+
+              <!-- 摄入量数字对比 -->
+              <div class="flex items-baseline justify-between mt-2">
+                <div>
+                  <span class="text-[10px] text-slate-500 block">今日已摄入</span>
+                  <span class="text-xl font-bold font-num text-white">{{ macrosComparison.carbs.actual }}</span>
+                  <span class="text-xs text-slate-400 ml-0.5">g</span>
+                </div>
+                <div class="text-right">
+                  <span class="text-[10px] text-slate-500 block">目标量 ({{ targetMacros.carbsCalories }} kcal)</span>
+                  <span class="text-xl font-bold font-num text-amber-400">{{ targetMacros.carbsGrams }}</span>
+                  <span class="text-xs text-slate-400 ml-0.5">g</span>
+                </div>
+              </div>
+
+              <!-- 进度条 -->
+              <div class="w-full bg-slate-900 rounded-full h-2 mt-2 overflow-hidden border border-slate-800">
+                <div class="bg-gradient-to-r from-amber-500 to-yellow-400 h-2 rounded-full transition-all duration-500" :style="{ width: macrosComparison.carbs.displayProgress + '%' }"></div>
+              </div>
+            </div>
+
+            <!-- 底部差值状态与排球导向提示 -->
+            <div class="pt-2 border-t border-slate-800/80 flex items-center justify-between text-[11px]">
+              <span class="text-slate-400">
+                {{ macrosComparison.carbs.isCompleted ? '超量储备 +' + Math.abs(macrosComparison.carbs.remaining) + 'g' : '还需摄入 ' + macrosComparison.carbs.remaining + 'g' }}
+              </span>
+              <span class="font-bold font-num text-amber-400">{{ macrosComparison.carbs.progress }}%</span>
+            </div>
+            <p class="text-[10px] text-slate-500 leading-tight">
+              🏐 维持肌糖原储备，保障连续多局起跳摸高不掉高度
+            </p>
+          </div>
+
+          <!-- 2. 优质蛋白质卡片 (1.7x -> 132.6g) -->
+          <div class="bg-slate-950/60 p-4 rounded-xl border border-slate-800 space-y-2.5 flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between mb-1">
+                <span class="font-bold text-white text-xs flex items-center space-x-1.5">
+                  <span>🥩</span>
+                  <span>优质蛋白质 ({{ userProfile.macroProteinRatio }}x)</span>
+                </span>
+                <span class="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full" :class="macrosComparison.protein.isCompleted ? 'bg-emerald-500/20 text-brand-volt border border-emerald-500/30' : 'bg-slate-800 text-slate-400'">
+                  {{ macrosComparison.protein.isCompleted ? '已达标' : '待补充' }}
+                </span>
+              </div>
+
+              <!-- 摄入量数字对比 -->
+              <div class="flex items-baseline justify-between mt-2">
+                <div>
+                  <span class="text-[10px] text-slate-500 block">今日已摄入</span>
+                  <span class="text-xl font-bold font-num text-white">{{ macrosComparison.protein.actual }}</span>
+                  <span class="text-xs text-slate-400 ml-0.5">g</span>
+                </div>
+                <div class="text-right">
+                  <span class="text-[10px] text-slate-500 block">目标量 ({{ targetMacros.proteinCalories }} kcal)</span>
+                  <span class="text-xl font-bold font-num text-blue-400">{{ targetMacros.proteinGrams }}</span>
+                  <span class="text-xs text-slate-400 ml-0.5">g</span>
+                </div>
+              </div>
+
+              <!-- 进度条 -->
+              <div class="w-full bg-slate-900 rounded-full h-2 mt-2 overflow-hidden border border-slate-800">
+                <div class="bg-gradient-to-r from-blue-500 to-cyan-400 h-2 rounded-full transition-all duration-500" :style="{ width: macrosComparison.protein.displayProgress + '%' }"></div>
+              </div>
+            </div>
+
+            <!-- 底部差值状态与排球导向提示 -->
+            <div class="pt-2 border-t border-slate-800/80 flex items-center justify-between text-[11px]">
+              <span class="text-slate-400">
+                {{ macrosComparison.protein.isCompleted ? '超量修复 +' + Math.abs(macrosComparison.protein.remaining) + 'g' : '还需摄入 ' + macrosComparison.protein.remaining + 'g' }}
+              </span>
+              <span class="font-bold font-num text-blue-400">{{ macrosComparison.protein.progress }}%</span>
+            </div>
+            <p class="text-[10px] text-slate-500 leading-tight">
+              🏐 练背/胸肩力量后肌原纤维超量合成，加速扣球力量恢复
+            </p>
+          </div>
+
+          <!-- 3. 健康脂肪卡片 (1.0x -> 78g) -->
+          <div class="bg-slate-950/60 p-4 rounded-xl border border-slate-800 space-y-2.5 flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between mb-1">
+                <span class="font-bold text-white text-xs flex items-center space-x-1.5">
+                  <span>🥑</span>
+                  <span>健康脂肪 ({{ userProfile.macroFatRatio }}x)</span>
+                </span>
+                <span class="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full" :class="macrosComparison.fat.isCompleted ? 'bg-emerald-500/20 text-brand-volt border border-emerald-500/30' : 'bg-slate-800 text-slate-400'">
+                  {{ macrosComparison.fat.isCompleted ? '已达标' : '待补充' }}
+                </span>
+              </div>
+
+              <!-- 摄入量数字对比 -->
+              <div class="flex items-baseline justify-between mt-2">
+                <div>
+                  <span class="text-[10px] text-slate-500 block">今日已摄入</span>
+                  <span class="text-xl font-bold font-num text-white">{{ macrosComparison.fat.actual }}</span>
+                  <span class="text-xs text-slate-400 ml-0.5">g</span>
+                </div>
+                <div class="text-right">
+                  <span class="text-[10px] text-slate-500 block">目标量 ({{ targetMacros.fatCalories }} kcal)</span>
+                  <span class="text-xl font-bold font-num text-rose-400">{{ targetMacros.fatGrams }}</span>
+                  <span class="text-xs text-slate-400 ml-0.5">g</span>
+                </div>
+              </div>
+
+              <!-- 进度条 -->
+              <div class="w-full bg-slate-900 rounded-full h-2 mt-2 overflow-hidden border border-slate-800">
+                <div class="bg-gradient-to-r from-rose-500 to-pink-400 h-2 rounded-full transition-all duration-500" :style="{ width: macrosComparison.fat.displayProgress + '%' }"></div>
+              </div>
+            </div>
+
+            <!-- 底部差值状态与排球导向提示 -->
+            <div class="pt-2 border-t border-slate-800/80 flex items-center justify-between text-[11px]">
+              <span class="text-slate-400">
+                {{ macrosComparison.fat.isCompleted ? '超量供给 +' + Math.abs(macrosComparison.fat.remaining) + 'g' : '还需摄入 ' + macrosComparison.fat.remaining + 'g' }}
+              </span>
+              <span class="font-bold font-num text-rose-400">{{ macrosComparison.fat.progress }}%</span>
+            </div>
+            <p class="text-[10px] text-slate-500 leading-tight">
+              🏐 保护排球扣杀着地膝关节囊，稳定睾酮等运动合成代谢激素
+            </p>
+          </div>
+
+        </div>
+
+        <!-- 供能比比例展示条 -->
+        <div class="bg-slate-950/60 p-3 rounded-xl border border-slate-800/90 space-y-2">
+          <div class="flex items-center justify-between text-xs">
+            <span class="text-slate-400 font-bold">🎯 目标热量结构占比：</span>
+            <div class="flex items-center space-x-3 text-[11px] font-num">
+              <span class="text-amber-400">碳水 {{ targetMacros.carbsRatio }}%</span>
+              <span class="text-blue-400">蛋白 {{ targetMacros.proteinRatio }}%</span>
+              <span class="text-rose-400">脂肪 {{ targetMacros.fatRatio }}%</span>
+            </div>
+          </div>
+          <!-- 复合比例颜色条 -->
+          <div class="w-full h-2.5 rounded-full overflow-hidden flex bg-slate-900">
+            <div class="bg-amber-400 h-full" :style="{ width: targetMacros.carbsRatio + '%' }" title="碳水供能比"></div>
+            <div class="bg-blue-400 h-full" :style="{ width: targetMacros.proteinRatio + '%' }" title="蛋白质供能比"></div>
+            <div class="bg-rose-400 h-full" :style="{ width: targetMacros.fatRatio + '%' }" title="脂肪供能比"></div>
           </div>
         </div>
       </section>
@@ -1238,19 +1515,56 @@
         </p>
       </div>
 
-      <!-- 个人生理参数设置 (影响卡路里计算精准度) -->
+      <!-- 个人生理与三大营养素参数设置 (影响卡路里与宏量营养素目标) -->
       <div class="glass-panel rounded-2xl p-5 border border-slate-800 space-y-4">
-        <h2 class="text-sm font-bold text-white">⚙️ 个人能耗参数设置</h2>
+        <div class="flex items-center justify-between">
+          <h2 class="text-sm font-bold text-white flex items-center space-x-1.5">
+            <span>⚙️</span>
+            <span>个人生理与三大营养素目标设置</span>
+          </h2>
+          <span class="text-[11px] bg-brand-volt/10 text-brand-volt font-bold px-2.5 py-0.5 rounded-full border border-brand-volt/30 font-num">
+            目标总热量 {{ targetMacros.totalTargetCalories }} kcal
+          </span>
+        </div>
         
         <div>
           <div class="flex justify-between text-xs text-slate-300 mb-1">
-            <span>体重设置 (用于精确计算爬坡与排球能耗):</span>
+            <span>当前体重 (用于精确计算爬坡、排球与目标摄入):</span>
             <span class="text-brand-volt font-bold font-num text-sm">{{ userProfile.weight }} kg</span>
           </div>
-          <input type="range" min="45" max="120" step="1" v-model.number="userProfile.weight" @change="saveState" class="w-full accent-brand-volt cursor-pointer">
+          <input type="range" min="45" max="120" step="0.5" v-model.number="userProfile.weight" @change="saveState" class="w-full accent-brand-volt cursor-pointer">
         </div>
 
-        <div>
+        <div class="pt-2 border-t border-slate-800/80 grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+          <div class="bg-slate-900/60 p-3 rounded-xl border border-slate-800">
+            <div class="flex justify-between mb-1">
+              <span class="text-slate-400">🍚 碳水系数:</span>
+              <span class="font-bold text-amber-400 font-num">{{ userProfile.macroCarbsRatio }} g/kg</span>
+            </div>
+            <input type="range" min="1.0" max="6.0" step="0.1" v-model.number="userProfile.macroCarbsRatio" @change="saveState" class="w-full accent-amber-400 cursor-pointer">
+            <span class="text-[10px] text-slate-500 block mt-1">目标: {{ targetMacros.carbsGrams }}g ({{ targetMacros.carbsCalories }} kcal)</span>
+          </div>
+
+          <div class="bg-slate-900/60 p-3 rounded-xl border border-slate-800">
+            <div class="flex justify-between mb-1">
+              <span class="text-slate-400">🥩 蛋白系数:</span>
+              <span class="font-bold text-blue-400 font-num">{{ userProfile.macroProteinRatio }} g/kg</span>
+            </div>
+            <input type="range" min="1.0" max="3.0" step="0.1" v-model.number="userProfile.macroProteinRatio" @change="saveState" class="w-full accent-blue-400 cursor-pointer">
+            <span class="text-[10px] text-slate-500 block mt-1">目标: {{ targetMacros.proteinGrams }}g ({{ targetMacros.proteinCalories }} kcal)</span>
+          </div>
+
+          <div class="bg-slate-900/60 p-3 rounded-xl border border-slate-800">
+            <div class="flex justify-between mb-1">
+              <span class="text-slate-400">🥑 脂肪系数:</span>
+              <span class="font-bold text-rose-400 font-num">{{ userProfile.macroFatRatio }} g/kg</span>
+            </div>
+            <input type="range" min="0.5" max="2.0" step="0.1" v-model.number="userProfile.macroFatRatio" @change="saveState" class="w-full accent-rose-400 cursor-pointer">
+            <span class="text-[10px] text-slate-500 block mt-1">目标: {{ targetMacros.fatGrams }}g ({{ targetMacros.fatCalories }} kcal)</span>
+          </div>
+        </div>
+
+        <div class="pt-2 border-t border-slate-800/80">
           <div class="flex justify-between text-xs text-slate-300 mb-1">
             <span>每周排球运动预期频次:</span>
             <span class="text-brand-orange font-bold font-num text-sm">{{ userProfile.weeklyVolleyballTarget }} 天/周</span>
@@ -2595,13 +2909,13 @@ const CalorieCalculator = {
    * 男：10 * 体重(kg) + 6.25 * 身高(cm) - 5 * 年龄 + 5
    * 女：10 * 体重(kg) + 6.25 * 身高(cm) - 5 * 年龄 - 161
    * @param {string} gender - 'male' | 'female'
-   * @param {number} weight - 体重 (kg)，默认 76
+   * @param {number} weight - 体重 (kg)，默认 78
    * @param {number} height - 身高 (cm)，默认 174
    * @param {number} age - 年龄 (岁)，默认 25
    * @returns {number} 基础代谢 (kcal)
    */
-  calculateBMR(gender = 'male', weight = 76, height = 174, age = 25) {
-    const w = Number(weight) || 76;
+  calculateBMR(gender = 'male', weight = 78, height = 174, age = 25) {
+    const w = Number(weight) || 78;
     const h = Number(height) || 174;
     const a = Number(age) || 25;
     let bmr = (10 * w) + (6.25 * h) - (5 * a);
@@ -2611,6 +2925,119 @@ const CalorieCalculator = {
       bmr += 5;
     }
     return Math.round(bmr);
+  },
+
+  /**
+   * 三大营养素科学目标摄入量计算
+   * 按照用户设定：每公斤体重摄入 3 倍碳水，1.7 倍蛋白质，1 倍脂肪
+   * 能量换算规则：1g 碳水 = 4 kcal，1g 蛋白质 = 4 kcal，1g 脂肪 = 9 kcal
+   * @param {number} weight - 体重 (kg)，例如 78kg
+   * @param {number} carbsMultiplier - 碳水系数 (g/kg)，默认 3.0
+   * @param {number} proteinMultiplier - 蛋白质系数 (g/kg)，默认 1.7
+   * @param {number} fatMultiplier - 脂肪系数 (g/kg)，默认 1.0
+   * @returns {object}
+   */
+  calculateTargetMacros(weight = 78, carbsMultiplier = 3.0, proteinMultiplier = 1.7, fatMultiplier = 1.0) {
+    const w = Number(weight) || 78;
+    const cMult = Number(carbsMultiplier) || 3.0;
+    const pMult = Number(proteinMultiplier) || 1.7;
+    const fMult = Number(fatMultiplier) || 1.0;
+
+    // 目标克数计算
+    const carbsGrams = Math.round(w * cMult);
+    const proteinGrams = Number((w * pMult).toFixed(1));
+    const fatGrams = Math.round(w * fMult);
+
+    // 对应卡路里供能
+    const carbsCalories = Math.round(carbsGrams * 4);
+    const proteinCalories = Math.round(proteinGrams * 4);
+    const fatCalories = Math.round(fatGrams * 9);
+    const totalTargetCalories = carbsCalories + proteinCalories + fatCalories;
+
+    // 供能比百分比 (Macro Calorie Breakdown)
+    const carbsRatio = totalTargetCalories > 0 ? Math.round((carbsCalories / totalTargetCalories) * 100) : 0;
+    const proteinRatio = totalTargetCalories > 0 ? Math.round((proteinCalories / totalTargetCalories) * 100) : 0;
+    const fatRatio = totalTargetCalories > 0 ? (100 - carbsRatio - proteinRatio) : 0;
+
+    return {
+      weight: w,
+      carbsMultiplier: cMult,
+      proteinMultiplier: pMult,
+      fatMultiplier: fMult,
+      carbsGrams,
+      proteinGrams,
+      fatGrams,
+      carbsCalories,
+      proteinCalories,
+      fatCalories,
+      totalTargetCalories,
+      carbsRatio,
+      proteinRatio,
+      fatRatio
+    };
+  },
+
+  /**
+   * 今日摄入与目标三大营养素对比分析
+   * @param {object} actualNutrition - { calories, carbs, protein, fat }
+   * @param {object} targetMacros - 目标营养素对象
+   * @returns {object}
+   */
+  compareMacros(actualNutrition = {}, targetMacros = {}) {
+    const actualC = Number(actualNutrition.carbs) || 0;
+    const actualP = Number(actualNutrition.protein) || 0;
+    const actualF = Number(actualNutrition.fat) || 0;
+    const actualCal = Number(actualNutrition.calories) || 0;
+
+    const targetC = Number(targetMacros.carbsGrams) || 0;
+    const targetP = Number(targetMacros.proteinGrams) || 0;
+    const targetF = Number(targetMacros.fatGrams) || 0;
+    const targetCal = Number(targetMacros.totalTargetCalories) || 0;
+
+    const carbsProgress = targetC > 0 ? Math.round((actualC / targetC) * 100) : 0;
+    const proteinProgress = targetP > 0 ? Math.round((actualP / targetP) * 100) : 0;
+    const fatProgress = targetF > 0 ? Math.round((actualF / targetF) * 100) : 0;
+    const calorieProgress = targetCal > 0 ? Math.round((actualCal / targetCal) * 100) : 0;
+
+    const carbsRemaining = Number((targetC - actualC).toFixed(1));
+    const proteinRemaining = Number((targetP - actualP).toFixed(1));
+    const fatRemaining = Number((targetF - actualF).toFixed(1));
+    const calorieRemaining = Math.round(targetCal - actualCal);
+
+    return {
+      carbs: {
+        actual: actualC,
+        target: targetC,
+        progress: carbsProgress,
+        displayProgress: Math.min(100, carbsProgress),
+        remaining: carbsRemaining,
+        isCompleted: carbsRemaining <= 0
+      },
+      protein: {
+        actual: actualP,
+        target: targetP,
+        progress: proteinProgress,
+        displayProgress: Math.min(100, proteinProgress),
+        remaining: proteinRemaining,
+        isCompleted: proteinRemaining <= 0
+      },
+      fat: {
+        actual: actualF,
+        target: targetF,
+        progress: fatProgress,
+        displayProgress: Math.min(100, fatProgress),
+        remaining: fatRemaining,
+        isCompleted: fatRemaining <= 0
+      },
+      calories: {
+        actual: actualCal,
+        target: targetCal,
+        progress: calorieProgress,
+        displayProgress: Math.min(100, calorieProgress),
+        remaining: calorieRemaining,
+        isCompleted: calorieRemaining <= 0
+      }
+    };
   },
 
   /**
@@ -3621,13 +4048,16 @@ const app = createApp({
       return planDateMode.value === 'today' ? todayDate.value : tomorrowDate.value;
     });
 
-    // 用户基础资料与体能参数 (按用户实际设定：身高 174cm，体重 76kg)
+    // 用户基础资料与体能参数 (按用户实际设定：身高 174cm，体重 78kg，三大营养素：3倍碳水 / 1.7倍蛋白 / 1倍脂肪)
     const userProfile = ref({
       gender: 'male',
       age: 25,
       height: 174,
-      weight: 76,
-      weeklyVolleyballTarget: 5
+      weight: 78,
+      weeklyVolleyballTarget: 5,
+      macroCarbsRatio: 3.0,    // 碳水系数 (g/kg) - 3.0x
+      macroProteinRatio: 1.7,  // 蛋白质系数 (g/kg) - 1.7x
+      macroFatRatio: 1.0       // 脂肪系数 (g/kg) - 1.0x
     });
 
     // 基础代谢率 (BMR) - 运动生理学黄金 Mifflin-St Jeor 算法
@@ -3898,6 +4328,48 @@ const app = createApp({
         summary: def.summary
       };
     });
+
+    // 三大营养素科学目标摄入量与达成对比 (用户设定：体重 78kg，3倍碳水，1.7倍蛋白质，1倍脂肪)
+    const targetMacros = computed(() => {
+      return CalorieCalculator.calculateTargetMacros(
+        userProfile.value.weight,
+        userProfile.value.macroCarbsRatio,
+        userProfile.value.macroProteinRatio,
+        userProfile.value.macroFatRatio
+      );
+    });
+
+    const macrosComparison = computed(() => {
+      return CalorieCalculator.compareMacros(
+        todayNutritionTotal.value,
+        targetMacros.value
+      );
+    });
+
+    // 营养方案预设切换与参数抽屉控制
+    const activeMacroPreset = ref('volleyball'); // 'volleyball' | 'lean' | 'carb_loading' | 'custom'
+    const showMacroConfigDrawer = ref(false);
+
+    const applyMacroPreset = (preset) => {
+      activeMacroPreset.value = preset;
+      if (preset === 'volleyball') {
+        userProfile.value.macroCarbsRatio = 3.0;
+        userProfile.value.macroProteinRatio = 1.7;
+        userProfile.value.macroFatRatio = 1.0;
+        showToast('已切换至【排球专项高能与恢复】配比 (3.0x 碳水 / 1.7x 蛋白 / 1.0x 脂肪)');
+      } else if (preset === 'lean') {
+        userProfile.value.macroCarbsRatio = 2.0;
+        userProfile.value.macroProteinRatio = 2.0;
+        userProfile.value.macroFatRatio = 0.8;
+        showToast('已切换至【低脂紧致/减脂塑形】配比 (2.0x 碳水 / 2.0x 蛋白 / 0.8x 脂肪)');
+      } else if (preset === 'carb_loading') {
+        userProfile.value.macroCarbsRatio = 4.5;
+        userProfile.value.macroProteinRatio = 1.5;
+        userProfile.value.macroFatRatio = 0.8;
+        showToast('已切换至【重大比赛/赛前爆发充碳】配比 (4.5x 碳水 / 1.5x 蛋白 / 0.8x 脂肪)');
+      }
+      saveState();
+    };
 
     // 二维码图片链接
     const qrCodeImageUrl = computed(() => {
@@ -4499,7 +4971,15 @@ const app = createApp({
       const localData = SyncEngine.loadLocalData();
       
       if (localData) {
-        if (localData.userProfile) userProfile.value = { ...userProfile.value, ...localData.userProfile };
+        if (localData.userProfile) {
+          userProfile.value = { ...userProfile.value, ...localData.userProfile };
+          if (typeof userProfile.value.macroCarbsRatio === 'undefined') userProfile.value.macroCarbsRatio = 3.0;
+          if (typeof userProfile.value.macroProteinRatio === 'undefined') userProfile.value.macroProteinRatio = 1.7;
+          if (typeof userProfile.value.macroFatRatio === 'undefined') userProfile.value.macroFatRatio = 1.0;
+          if (userProfile.value.weight === 76) {
+            userProfile.value.weight = 78;
+          }
+        }
         if (localData.fatigue) fatigue.value = { ...fatigue.value, ...localData.fatigue };
         if (localData.historyLogs && Array.isArray(localData.historyLogs)) {
           historyLogs.value = localData.historyLogs;
@@ -4707,6 +5187,11 @@ const app = createApp({
       netEnergyBalance,
       bmrCalories,
       dailyEnergyDeficit,
+      targetMacros,
+      macrosComparison,
+      activeMacroPreset,
+      showMacroConfigDrawer,
+      applyMacroPreset,
       dailyMeals,
       calendarYear,
       calendarMonth,
