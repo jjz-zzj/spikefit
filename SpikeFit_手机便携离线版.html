@@ -516,7 +516,7 @@
               <span>{{ calendarTitle }}</span>
               <span class="text-xs text-brand-volt font-mono font-bold bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">训练与饮食日历</span>
             </h2>
-            <p class="text-[11px] text-slate-400">每日训练排球/力量/爬坡与餐食摄入全景，自动核算每日热量缺口</p>
+            <p class="text-[11px] text-slate-400">每日训练排球/力量/爬坡、体重趋势与餐食摄入全景，自动核算每日热量缺口</p>
           </div>
         </div>
 
@@ -587,6 +587,11 @@
 
             <!-- 中间：打卡事件微标 -->
             <div class="space-y-0.5 my-1">
+              <!-- 每日体重微标 -->
+              <div v-if="day.weight !== null && typeof day.weight !== 'undefined'" class="flex items-center space-x-1 text-[9px] bg-cyan-500/20 text-cyan-300 px-1 py-0.5 rounded truncate font-mono font-bold">
+                <span>⚖️</span>
+                <span class="truncate">{{ day.weight }}<span class="hidden sm:inline">kg</span></span>
+              </div>
               <!-- 排球比赛微标 -->
               <div v-if="day.workout && day.workout.volleyball && day.workout.volleyball.enabled" class="flex items-center space-x-1 text-[9px] bg-orange-500/20 text-brand-orange px-1 py-0.5 rounded truncate font-medium">
                 <span>🏐</span>
@@ -645,6 +650,72 @@
           </div>
         </div>
 
+        <!-- 0. 当日体重打卡与近期趋势卡片 -->
+        <div class="bg-gradient-to-r from-cyan-950/40 via-slate-900/70 to-slate-950/70 rounded-2xl p-3.5 sm:p-4 border border-cyan-500/30 space-y-3">
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <div class="flex items-center space-x-2.5">
+              <div class="w-9 h-9 rounded-xl bg-cyan-500/20 border border-cyan-500/30 flex items-center justify-center text-lg">⚖️</div>
+              <div>
+                <div class="flex items-center space-x-2">
+                  <span class="text-xs font-bold text-white">当日体重记录</span>
+                  <span v-if="selectedDayDetail.weight !== null" class="font-num text-sm font-black text-cyan-300 bg-cyan-500/15 border border-cyan-500/30 px-2 py-0.5 rounded-full">
+                    {{ selectedDayDetail.weight }} kg
+                  </span>
+                  <span v-else class="text-[11px] text-slate-400 bg-slate-800/80 px-2 py-0.5 rounded-full">未记录</span>
+                  <span v-if="selectedDayDetail.weightDiff !== null" :class="selectedDayDetail.weightDiff <= 0 ? 'text-brand-volt bg-emerald-500/10 border-emerald-500/30' : 'text-brand-orange bg-orange-500/10 border-orange-500/30'" class="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full border">
+                    {{ selectedDayDetail.weightDiff > 0 ? '↑ +' : (selectedDayDetail.weightDiff < 0 ? '↓ ' : '持平 ') }}{{ selectedDayDetail.weightDiff }} kg
+                  </span>
+                </div>
+                <p class="text-[10px] text-slate-400 mt-0.5">晨起空腹称重更准确；今日体重将自动联动 BMR 与三大营养素目标</p>
+              </div>
+            </div>
+
+            <!-- 快捷录入与微调控件 -->
+            <div class="flex items-center space-x-1.5">
+              <button @click="adjustCalendarWeight(-0.1)" class="w-7 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 font-bold text-xs transition" title="减少 0.1kg">-0.1</button>
+              <div class="relative">
+                <input
+                  type="number"
+                  step="0.1"
+                  inputmode="decimal"
+                  v-model="calendarWeightInput"
+                  @keyup.enter="saveCalendarWeight(selectedDayDetail.dateStr)"
+                  :placeholder="String(userProfile.weight)"
+                  class="w-20 h-8 bg-slate-950 border border-cyan-500/40 rounded-lg px-2 text-center font-num text-sm font-bold text-white focus:outline-none focus:border-cyan-400"
+                >
+                <span class="absolute right-1.5 top-2 text-[10px] text-slate-500 pointer-events-none">kg</span>
+              </div>
+              <button @click="adjustCalendarWeight(0.1)" class="w-7 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 font-bold text-xs transition" title="增加 0.1kg">+0.1</button>
+              <button @click="saveCalendarWeight(selectedDayDetail.dateStr)" class="h-8 px-3 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-black font-extrabold text-xs transition shadow-md shadow-cyan-500/20">
+                记录
+              </button>
+              <button v-if="selectedDayDetail.weight !== null" @click="removeCalendarWeight(selectedDayDetail.dateStr)" class="h-8 w-7 rounded-lg bg-slate-900 hover:bg-rose-950/60 border border-slate-700 hover:border-rose-500/40 text-slate-400 hover:text-rose-400 text-xs transition" title="清除当天体重">
+                ✕
+              </button>
+            </div>
+          </div>
+
+          <!-- 近期体重趋势微折线图 (≥2条记录时自动显示) -->
+          <div v-if="weightTrendData.points.length >= 2" class="bg-slate-950/70 rounded-xl p-2.5 border border-slate-800/80">
+            <div class="flex items-center justify-between text-[10px] mb-1.5">
+              <span class="text-slate-400 font-bold">📈 近期体重波动曲线 (近 {{ weightTrendData.points.length }} 次记录)</span>
+              <div class="flex items-center space-x-2 font-mono">
+                <span class="text-slate-400">区间: {{ weightTrendData.min }}~{{ weightTrendData.max }} kg</span>
+                <span v-if="weightTrendData.delta !== null" :class="weightTrendData.delta <= 0 ? 'text-brand-volt' : 'text-brand-orange'" class="font-bold">
+                  累计 {{ weightTrendData.delta > 0 ? '+' : '' }}{{ weightTrendData.delta }} kg
+                </span>
+              </div>
+            </div>
+            <svg viewBox="0 0 320 70" class="w-full h-16 overflow-visible">
+              <polyline :points="weightTrendData.polyline" fill="none" stroke="#22d3ee" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <g v-for="(pt, idx) in weightTrendData.points" :key="pt.date">
+                <circle :cx="pt.x" :cy="pt.y" :r="pt.date === selectedDayDetail.dateStr ? 4.5 : 3" :fill="pt.date === selectedDayDetail.dateStr ? '#00f59b' : '#22d3ee'" stroke="#0f172a" stroke-width="1.5"/>
+                <text v-if="idx === 0 || idx === weightTrendData.points.length - 1 || pt.date === selectedDayDetail.dateStr" :x="pt.x" :y="Math.max(10, pt.y - 7)" text-anchor="middle" fill="#cbd5e1" font-size="8" font-family="monospace">{{ pt.weight }}</text>
+              </g>
+            </svg>
+          </div>
+        </div>
+
         <!-- 1. 核心能量天平四联卡（基础代谢 + 运动消耗 - 饮食摄入 = 热量缺口） -->
         <div class="bg-slate-950/70 rounded-2xl p-4 border border-slate-800 space-y-3">
           <div class="flex items-center justify-between">
@@ -662,7 +733,7 @@
             <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-800">
               <span class="text-slate-400 text-[10px] block mb-1">🧘 基础代谢 (BMR)</span>
               <span class="font-num text-xl font-bold text-blue-400">{{ selectedDayDetail.bmr }}</span>
-              <span class="text-[10px] text-slate-500 block">174cm / 76kg</span>
+              <span class="text-[10px] text-slate-500 block">{{ userProfile.height }}cm / {{ selectedDayDetail.weight || userProfile.weight }}kg</span>
             </div>
             <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-800">
               <span class="text-slate-400 text-[10px] block mb-1">⚡ 当日运动消耗</span>
@@ -4701,6 +4772,9 @@ const app = createApp({
     // 跨日期多计划容器字典 { 'YYYY-MM-DD': { volleyball, treadmill, exercises } }
     const dailyPlans = ref({});
 
+    // 跨日期体重记录字典 { 'YYYY-MM-DD': number (kg) }
+    const dailyWeights = ref({});
+
     // 跨日期多餐食容器字典 { 'YYYY-MM-DD': [ { id, time, dishName, calories, carbs, protein, fat, fiber, advice } ] }
     const dailyMeals = ref({
       '2026-11-23': [
@@ -5103,6 +5177,12 @@ const app = createApp({
     const calendarYear = ref(now.getFullYear());
     const calendarMonth = ref(now.getMonth());
     const selectedCalendarDate = ref(todayDate.value);
+    const calendarWeightInput = ref('');
+
+    const syncWeightInputForDate = (dateStr) => {
+      const existing = dailyWeights.value[dateStr];
+      calendarWeightInput.value = (typeof existing === 'number' && !isNaN(existing)) ? String(existing) : '';
+    };
 
     const calendarTitle = computed(() => {
       return `${calendarYear.value}年 ${calendarMonth.value + 1}月`;
@@ -5130,12 +5210,103 @@ const app = createApp({
       const d = new Date();
       calendarYear.value = d.getFullYear();
       calendarMonth.value = d.getMonth();
-      selectedCalendarDate.value = formatDate(d);
+      const tStr = formatDate(d);
+      selectedCalendarDate.value = tStr;
+      syncWeightInputForDate(tStr);
     };
 
     const selectCalendarDate = (dateStr) => {
       selectedCalendarDate.value = dateStr;
+      syncWeightInputForDate(dateStr);
     };
+
+    // 保存选中日期的体重，并联动更新当前全身参数（若是今日或最新记录日）
+    const saveCalendarWeight = (dateStr, rawVal) => {
+      const val = rawVal !== undefined ? rawVal : calendarWeightInput.value;
+      const w = Number(val);
+      if (!val || isNaN(w) || w < 30 || w > 250) {
+        showToast('请输入有效体重 (30~250 kg)');
+        return;
+      }
+      const rounded = Number(w.toFixed(1));
+      dailyWeights.value[dateStr] = rounded;
+      calendarWeightInput.value = String(rounded);
+
+      const allDates = Object.keys(dailyWeights.value).sort();
+      const latestDate = allDates[allDates.length - 1];
+      if (dateStr === todayDate.value || dateStr === latestDate) {
+        userProfile.value.weight = rounded;
+      }
+
+      saveState();
+      showToast(`⚖️ 已记录 ${dateStr} 体重：${rounded} kg`);
+    };
+
+    const adjustCalendarWeight = (delta) => {
+      const base = Number(calendarWeightInput.value) || dailyWeights.value[selectedCalendarDate.value] || userProfile.value.weight || 78;
+      const next = Math.max(30, Math.min(250, Number((base + delta).toFixed(1))));
+      calendarWeightInput.value = String(next);
+    };
+
+    const removeCalendarWeight = (dateStr) => {
+      if (typeof dailyWeights.value[dateStr] !== 'undefined') {
+        delete dailyWeights.value[dateStr];
+        calendarWeightInput.value = '';
+        saveState();
+        showToast(`已清除 ${dateStr} 体重记录`);
+      }
+    };
+
+    // 近期体重趋势与 SVG 折线图计算
+    const weightTrendData = computed(() => {
+      const entries = Object.keys(dailyWeights.value || {})
+        .filter(d => typeof dailyWeights.value[d] === 'number' && !isNaN(dailyWeights.value[d]))
+        .sort()
+        .slice(-14)
+        .map(d => ({ date: d, weight: Number(dailyWeights.value[d]) }));
+
+      if (entries.length === 0) {
+        return { points: [], polyline: '', min: 0, max: 0, latest: null, delta: null };
+      }
+
+      const weights = entries.map(e => e.weight);
+      const minW = Math.min(...weights);
+      const maxW = Math.max(...weights);
+      const pad = Math.max(0.5, (maxW - minW) * 0.25);
+      const yMin = minW - pad;
+      const yMax = maxW + pad;
+      const width = 320;
+      const height = 70;
+      const padX = 16;
+      const padY = 10;
+
+      const pts = entries.map((e, idx) => {
+        const x = entries.length === 1
+          ? width / 2
+          : padX + (idx / (entries.length - 1)) * (width - padX * 2);
+        const y = height - padY - ((e.weight - yMin) / (yMax - yMin || 1)) * (height - padY * 2);
+        return {
+          date: e.date,
+          shortDate: e.date.slice(5),
+          weight: e.weight,
+          x: Number(x.toFixed(1)),
+          y: Number(y.toFixed(1))
+        };
+      });
+
+      const latest = entries[entries.length - 1];
+      const first = entries[0];
+      const delta = entries.length >= 2 ? Number((latest.weight - first.weight).toFixed(1)) : null;
+
+      return {
+        points: pts,
+        polyline: pts.map(p => `${p.x},${p.y}`).join(' '),
+        min: minW,
+        max: maxW,
+        latest,
+        delta
+      };
+    });
 
     // 辅助：获取任意一天的训练数据（从 dailyPlans 或 historyLogs 或当前表单）
     const getDayWorkoutData = (dateStr) => {
@@ -5229,6 +5400,7 @@ const app = createApp({
           isSelected: dateStr === selectedCalendarDate.value,
           workout: null,
           meals: [],
+          weight: null,
           burn: 0,
           intake: 0,
           deficitStats: null
@@ -5241,14 +5413,18 @@ const app = createApp({
         const dateStr = formatDate(dateObj);
         const workout = getDayWorkoutData(dateStr);
         const meals = getDayMealsData(dateStr);
+        const dayWeight = (typeof dailyWeights.value[dateStr] === 'number' && !isNaN(dailyWeights.value[dateStr])) ? dailyWeights.value[dateStr] : null;
+        const dayBmr = dayWeight
+          ? CalorieCalculator.calculateBMR(userProfile.value.gender, dayWeight, userProfile.value.height, userProfile.value.age)
+          : bmr;
 
         let intake = 0;
         meals.forEach(meal => {
           intake += Number(meal.calories) || 0;
         });
 
-        const hasData = (workout.totalCalories > 0 || workout.exercises.length > 0 || (workout.volleyball && workout.volleyball.enabled) || meals.length > 0);
-        const deficitStats = hasData ? CalorieCalculator.calculateCalorieDeficit(bmr, workout.totalCalories, intake) : null;
+        const hasData = (workout.totalCalories > 0 || workout.exercises.length > 0 || (workout.volleyball && workout.volleyball.enabled) || meals.length > 0 || dayWeight !== null);
+        const deficitStats = hasData ? CalorieCalculator.calculateCalorieDeficit(dayBmr, workout.totalCalories, intake) : null;
 
         grid.push({
           dateStr,
@@ -5258,6 +5434,7 @@ const app = createApp({
           isSelected: dateStr === selectedCalendarDate.value,
           workout,
           meals,
+          weight: dayWeight,
           burn: workout.totalCalories,
           intake,
           hasData,
@@ -5278,6 +5455,7 @@ const app = createApp({
           isSelected: dateStr === selectedCalendarDate.value,
           workout: null,
           meals: [],
+          weight: null,
           burn: 0,
           intake: 0,
           deficitStats: null
@@ -5292,8 +5470,23 @@ const app = createApp({
       const dateStr = selectedCalendarDate.value;
       const workout = getDayWorkoutData(dateStr);
       const meals = getDayMealsData(dateStr);
+      const dayWeight = (typeof dailyWeights.value[dateStr] === 'number' && !isNaN(dailyWeights.value[dateStr])) ? dailyWeights.value[dateStr] : null;
 
-      const bmr = bmrCalories.value;
+      // 计算与前一次记录体重的差值
+      let weightDiff = null;
+      if (dayWeight !== null) {
+        const prevDates = Object.keys(dailyWeights.value)
+          .filter(d => d < dateStr && typeof dailyWeights.value[d] === 'number' && !isNaN(dailyWeights.value[d]))
+          .sort();
+        if (prevDates.length > 0) {
+          const prevWeight = dailyWeights.value[prevDates[prevDates.length - 1]];
+          weightDiff = Number((dayWeight - prevWeight).toFixed(1));
+        }
+      }
+
+      const bmr = dayWeight
+        ? CalorieCalculator.calculateBMR(userProfile.value.gender, dayWeight, userProfile.value.height, userProfile.value.age)
+        : bmrCalories.value;
 
       let intake = 0;
       let carbs = 0;
@@ -5312,6 +5505,8 @@ const app = createApp({
 
       return {
         dateStr,
+        weight: dayWeight,
+        weightDiff,
         workout,
         meals,
         bmr,
@@ -5695,6 +5890,7 @@ const app = createApp({
             planDateMode: planDateMode.value,
             dailyPlans: dailyPlans.value,
             dailyMeals: dailyMeals.value,
+            dailyWeights: dailyWeights.value,
             todayVolleyball: todayVolleyball.value,
             todayTreadmill: todayTreadmill.value,
             todayExercises: todayExercises.value,
@@ -5726,6 +5922,7 @@ const app = createApp({
         planDateMode: planDateMode.value,
         dailyPlans: dailyPlans.value,
         dailyMeals: dailyMeals.value,
+        dailyWeights: dailyWeights.value,
         todayVolleyball: todayVolleyball.value,
         todayTreadmill: todayTreadmill.value,
         todayExercises: todayExercises.value,
@@ -5762,6 +5959,7 @@ const app = createApp({
             if (cloudData.fatigue) fatigue.value = cloudData.fatigue;
             if (cloudData.historyLogs) historyLogs.value = cloudData.historyLogs;
             if (cloudData.dailyPlans) dailyPlans.value = cloudData.dailyPlans;
+            if (cloudData.dailyWeights) dailyWeights.value = cloudData.dailyWeights;
             if (cloudData.dailyMeals) {
               const normDaily = {};
               for (const d in cloudData.dailyMeals) {
@@ -5776,6 +5974,7 @@ const app = createApp({
 
             loadPlanFromDict(activePlanDate.value);
             loadMealsFromDict(activePlanDate.value);
+            syncWeightInputForDate(selectedCalendarDate.value);
 
             saveState(true); // 仅保存本地，不触发循环反推
             const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -5823,6 +6022,9 @@ const app = createApp({
         if (localData.dailyPlans) {
           dailyPlans.value = localData.dailyPlans;
         }
+        if (localData.dailyWeights) {
+          dailyWeights.value = localData.dailyWeights;
+        }
         if (localData.dailyMeals) {
           const normDaily = {};
           for (const d in localData.dailyMeals) {
@@ -5855,6 +6057,7 @@ const app = createApp({
       // 载入今日打卡计划与今日餐食
       loadPlanFromDict(todayDate.value);
       loadMealsFromDict(todayDate.value);
+      syncWeightInputForDate(selectedCalendarDate.value);
     };
 
     const pushSync = async () => {
@@ -5868,6 +6071,7 @@ const app = createApp({
         planDateMode: planDateMode.value,
         dailyPlans: dailyPlans.value,
         dailyMeals: dailyMeals.value,
+        dailyWeights: dailyWeights.value,
         todayVolleyball: todayVolleyball.value,
         todayTreadmill: todayTreadmill.value,
         todayExercises: todayExercises.value,
@@ -5900,6 +6104,7 @@ const app = createApp({
         if (cloudData.fatigue) fatigue.value = cloudData.fatigue;
         if (cloudData.historyLogs) historyLogs.value = cloudData.historyLogs;
         if (cloudData.dailyPlans) dailyPlans.value = cloudData.dailyPlans;
+        if (cloudData.dailyWeights) dailyWeights.value = cloudData.dailyWeights;
         if (cloudData.dailyMeals) {
           const normDaily = {};
           for (const d in cloudData.dailyMeals) {
@@ -5914,6 +6119,7 @@ const app = createApp({
 
         loadPlanFromDict(activePlanDate.value);
         loadMealsFromDict(activePlanDate.value);
+        syncWeightInputForDate(selectedCalendarDate.value);
 
         if (inputSyncCode.value.trim()) {
           syncCode.value = SyncEngine.setSyncCode(inputSyncCode.value.trim());
@@ -5943,6 +6149,7 @@ const app = createApp({
         userProfile: userProfile.value,
         fatigue: fatigue.value,
         dailyPlans: dailyPlans.value,
+        dailyWeights: dailyWeights.value,
         todayMeals: todayMeals.value,
         historyLogs: historyLogs.value
       });
@@ -6026,7 +6233,7 @@ const app = createApp({
       });
 
       if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('./sw.js?v=20261124_08').then(reg => {
+        navigator.serviceWorker.register('./sw.js?v=20261125_02').then(reg => {
           reg.update();
         }).catch(err => {
           console.log('SW registration note:', err);
@@ -6069,16 +6276,22 @@ const app = createApp({
       showMacroConfigDrawer,
       applyMacroPreset,
       dailyMeals,
+      dailyWeights,
       calendarYear,
       calendarMonth,
       calendarTitle,
       selectedCalendarDate,
+      calendarWeightInput,
       selectedDayDetail,
       calendarGrid,
+      weightTrendData,
       prevMonth,
       nextMonth,
       goToTodayCalendar,
       selectCalendarDate,
+      saveCalendarWeight,
+      adjustCalendarWeight,
+      removeCalendarWeight,
       jumpToPlanFromCalendar,
       jumpToNutritionFromCalendar,
       onMealImageSelected,

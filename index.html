@@ -516,7 +516,7 @@
               <span>{{ calendarTitle }}</span>
               <span class="text-xs text-brand-volt font-mono font-bold bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">训练与饮食日历</span>
             </h2>
-            <p class="text-[11px] text-slate-400">每日训练排球/力量/爬坡与餐食摄入全景，自动核算每日热量缺口</p>
+            <p class="text-[11px] text-slate-400">每日训练排球/力量/爬坡、体重趋势与餐食摄入全景，自动核算每日热量缺口</p>
           </div>
         </div>
 
@@ -587,6 +587,11 @@
 
             <!-- 中间：打卡事件微标 -->
             <div class="space-y-0.5 my-1">
+              <!-- 每日体重微标 -->
+              <div v-if="day.weight !== null && typeof day.weight !== 'undefined'" class="flex items-center space-x-1 text-[9px] bg-cyan-500/20 text-cyan-300 px-1 py-0.5 rounded truncate font-mono font-bold">
+                <span>⚖️</span>
+                <span class="truncate">{{ day.weight }}<span class="hidden sm:inline">kg</span></span>
+              </div>
               <!-- 排球比赛微标 -->
               <div v-if="day.workout && day.workout.volleyball && day.workout.volleyball.enabled" class="flex items-center space-x-1 text-[9px] bg-orange-500/20 text-brand-orange px-1 py-0.5 rounded truncate font-medium">
                 <span>🏐</span>
@@ -645,6 +650,72 @@
           </div>
         </div>
 
+        <!-- 0. 当日体重打卡与近期趋势卡片 -->
+        <div class="bg-gradient-to-r from-cyan-950/40 via-slate-900/70 to-slate-950/70 rounded-2xl p-3.5 sm:p-4 border border-cyan-500/30 space-y-3">
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <div class="flex items-center space-x-2.5">
+              <div class="w-9 h-9 rounded-xl bg-cyan-500/20 border border-cyan-500/30 flex items-center justify-center text-lg">⚖️</div>
+              <div>
+                <div class="flex items-center space-x-2">
+                  <span class="text-xs font-bold text-white">当日体重记录</span>
+                  <span v-if="selectedDayDetail.weight !== null" class="font-num text-sm font-black text-cyan-300 bg-cyan-500/15 border border-cyan-500/30 px-2 py-0.5 rounded-full">
+                    {{ selectedDayDetail.weight }} kg
+                  </span>
+                  <span v-else class="text-[11px] text-slate-400 bg-slate-800/80 px-2 py-0.5 rounded-full">未记录</span>
+                  <span v-if="selectedDayDetail.weightDiff !== null" :class="selectedDayDetail.weightDiff <= 0 ? 'text-brand-volt bg-emerald-500/10 border-emerald-500/30' : 'text-brand-orange bg-orange-500/10 border-orange-500/30'" class="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full border">
+                    {{ selectedDayDetail.weightDiff > 0 ? '↑ +' : (selectedDayDetail.weightDiff < 0 ? '↓ ' : '持平 ') }}{{ selectedDayDetail.weightDiff }} kg
+                  </span>
+                </div>
+                <p class="text-[10px] text-slate-400 mt-0.5">晨起空腹称重更准确；今日体重将自动联动 BMR 与三大营养素目标</p>
+              </div>
+            </div>
+
+            <!-- 快捷录入与微调控件 -->
+            <div class="flex items-center space-x-1.5">
+              <button @click="adjustCalendarWeight(-0.1)" class="w-7 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 font-bold text-xs transition" title="减少 0.1kg">-0.1</button>
+              <div class="relative">
+                <input
+                  type="number"
+                  step="0.1"
+                  inputmode="decimal"
+                  v-model="calendarWeightInput"
+                  @keyup.enter="saveCalendarWeight(selectedDayDetail.dateStr)"
+                  :placeholder="String(userProfile.weight)"
+                  class="w-20 h-8 bg-slate-950 border border-cyan-500/40 rounded-lg px-2 text-center font-num text-sm font-bold text-white focus:outline-none focus:border-cyan-400"
+                >
+                <span class="absolute right-1.5 top-2 text-[10px] text-slate-500 pointer-events-none">kg</span>
+              </div>
+              <button @click="adjustCalendarWeight(0.1)" class="w-7 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 font-bold text-xs transition" title="增加 0.1kg">+0.1</button>
+              <button @click="saveCalendarWeight(selectedDayDetail.dateStr)" class="h-8 px-3 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-black font-extrabold text-xs transition shadow-md shadow-cyan-500/20">
+                记录
+              </button>
+              <button v-if="selectedDayDetail.weight !== null" @click="removeCalendarWeight(selectedDayDetail.dateStr)" class="h-8 w-7 rounded-lg bg-slate-900 hover:bg-rose-950/60 border border-slate-700 hover:border-rose-500/40 text-slate-400 hover:text-rose-400 text-xs transition" title="清除当天体重">
+                ✕
+              </button>
+            </div>
+          </div>
+
+          <!-- 近期体重趋势微折线图 (≥2条记录时自动显示) -->
+          <div v-if="weightTrendData.points.length >= 2" class="bg-slate-950/70 rounded-xl p-2.5 border border-slate-800/80">
+            <div class="flex items-center justify-between text-[10px] mb-1.5">
+              <span class="text-slate-400 font-bold">📈 近期体重波动曲线 (近 {{ weightTrendData.points.length }} 次记录)</span>
+              <div class="flex items-center space-x-2 font-mono">
+                <span class="text-slate-400">区间: {{ weightTrendData.min }}~{{ weightTrendData.max }} kg</span>
+                <span v-if="weightTrendData.delta !== null" :class="weightTrendData.delta <= 0 ? 'text-brand-volt' : 'text-brand-orange'" class="font-bold">
+                  累计 {{ weightTrendData.delta > 0 ? '+' : '' }}{{ weightTrendData.delta }} kg
+                </span>
+              </div>
+            </div>
+            <svg viewBox="0 0 320 70" class="w-full h-16 overflow-visible">
+              <polyline :points="weightTrendData.polyline" fill="none" stroke="#22d3ee" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <g v-for="(pt, idx) in weightTrendData.points" :key="pt.date">
+                <circle :cx="pt.x" :cy="pt.y" :r="pt.date === selectedDayDetail.dateStr ? 4.5 : 3" :fill="pt.date === selectedDayDetail.dateStr ? '#00f59b' : '#22d3ee'" stroke="#0f172a" stroke-width="1.5"/>
+                <text v-if="idx === 0 || idx === weightTrendData.points.length - 1 || pt.date === selectedDayDetail.dateStr" :x="pt.x" :y="Math.max(10, pt.y - 7)" text-anchor="middle" fill="#cbd5e1" font-size="8" font-family="monospace">{{ pt.weight }}</text>
+              </g>
+            </svg>
+          </div>
+        </div>
+
         <!-- 1. 核心能量天平四联卡（基础代谢 + 运动消耗 - 饮食摄入 = 热量缺口） -->
         <div class="bg-slate-950/70 rounded-2xl p-4 border border-slate-800 space-y-3">
           <div class="flex items-center justify-between">
@@ -662,7 +733,7 @@
             <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-800">
               <span class="text-slate-400 text-[10px] block mb-1">🧘 基础代谢 (BMR)</span>
               <span class="font-num text-xl font-bold text-blue-400">{{ selectedDayDetail.bmr }}</span>
-              <span class="text-[10px] text-slate-500 block">174cm / 76kg</span>
+              <span class="text-[10px] text-slate-500 block">{{ userProfile.height }}cm / {{ selectedDayDetail.weight || userProfile.weight }}kg</span>
             </div>
             <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-800">
               <span class="text-slate-400 text-[10px] block mb-1">⚡ 当日运动消耗</span>
@@ -1892,12 +1963,12 @@
   </div>
 
   <!-- 引入业务核心模块 (含版本更新防缓存时间戳) -->
-  <script src="./js/exercises.js?v=20261125_01"></script>
-  <script src="./js/exercise_illustrations.js?v=20261125_01"></script>
-  <script src="./js/calculator.js?v=20261125_01"></script>
-  <script src="./js/recommender.js?v=20261125_01"></script>
-  <script src="./js/nutrition.js?v=20261125_01"></script>
-  <script src="./js/sync.js?v=20261125_01"></script>
-  <script src="./js/app.js?v=20261125_01"></script>
+  <script src="./js/exercises.js?v=20261125_02"></script>
+  <script src="./js/exercise_illustrations.js?v=20261125_02"></script>
+  <script src="./js/calculator.js?v=20261125_02"></script>
+  <script src="./js/recommender.js?v=20261125_02"></script>
+  <script src="./js/nutrition.js?v=20261125_02"></script>
+  <script src="./js/sync.js?v=20261125_02"></script>
+  <script src="./js/app.js?v=20261125_02"></script>
 </body>
 </html>
