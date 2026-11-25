@@ -191,6 +191,36 @@ const EXERCISE_DATABASE = [
     tips: '大拇指朝上，依次做 Y 字、T 字、W 字上抬，顶峰停顿 1 秒夹紧肩胛骨，绝不用大重量。'
   },
 
+  // ===================== 手臂线条与肘稳 (ARMS) =====================
+  {
+    id: 'db_bicep_curl',
+    name: '哑铃交替弯举 (Bicep Curl)',
+    category: 'arms',
+    categoryName: '手臂线条与肘稳',
+    equipment: '哑铃',
+    targetMuscle: '肱二头肌、肱肌',
+    whyForVolleyball: '增强肘关节前侧动态稳定性，防止扣球挥臂末段肘关节过度超伸锁死，且不消耗核心与下肢体力',
+    defaultSets: 3,
+    defaultReps: 12,
+    defaultWeight: 10,
+    met: 3.5,
+    tips: '大臂夹紧躯干两侧固定不动，只动小臂向上弯举至顶峰收缩 1 秒，下放控制不甩腰借力。'
+  },
+  {
+    id: 'cable_tricep_pushdown',
+    name: '龙门架绳索三头下压 (Tricep Pushdown)',
+    category: 'arms',
+    categoryName: '手臂线条与肘稳',
+    equipment: '龙门架绳索',
+    targetMuscle: '肱三头肌外侧头与长头',
+    whyForVolleyball: '模拟扣球最后瞬间的快速伸肘鞭打发力；打球日仅做轻中重量激活充血，绝不力竭',
+    defaultSets: 2,
+    defaultReps: 15,
+    defaultWeight: 15,
+    met: 3.5,
+    tips: '大臂贴紧体侧，保持肘部位置固定，向下压直手臂并在底端微外展绳索感受三头肌收缩。'
+  },
+
   // ===================== 下肢力量 (LEGS) =====================
   {
     id: 'barbell_squat',

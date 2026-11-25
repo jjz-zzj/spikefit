@@ -1623,6 +1623,94 @@ ILLUSTRATIONS = {
   <text x="240" y="55" fill="#00f59b" font-size="12" font-weight="black">极限摸高 · 精确钉地板打靶</text>
   <text x="240" y="75" fill="#cbd5e1" font-size="10">全掌包球 · 直线/大斜线控点</text>
 </svg>"""
+    },
+
+    # 36. 哑铃交替弯举
+    "db_bicep_curl": {
+        "title": "哑铃交替弯举 (Dumbbell Bicep Curl)",
+        "equipment": "一对轻中重量哑铃 (8-12kg)",
+        "target": "肱二头肌长头与短头、肱肌",
+        "volleyballFocus": "巩固肘关节前侧动态防超伸稳定性，打球日适度充血不影响扣球挥臂加速",
+        "breathing": "上举弯举收缩时吐气，缓慢下放伸展时吸气。",
+        "steps": [
+            "双脚与肩同宽自然站立，核心收紧挺胸，双手持哑铃自然垂于体侧。",
+            "大臂贴紧躯干两侧像焊死一样固定不动，掌心向前上方旋转并向上弯举。",
+            "至二头肌最高点顶峰收缩 1 秒（避免哑铃撞肩放松张力）。",
+            "用 2 秒匀速控制缓慢下放至接近完全伸直但肘关节微屈，交替进行。"
+        ],
+        "mistakes": [
+            "利用前后晃腰或耸肩甩动借力，将大臂往前顶出。",
+            "练到力竭前臂死僵（打球日每组留 2~3 次余力即可）。"
+        ],
+        "svg": """<svg viewBox="0 0 400 240" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bgCurl" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#0b1120"/><stop offset="100%" stop-color="#0f172a"/></linearGradient>
+    <filter id="glowCurl"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    <marker id="arrowCurl" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto"><path d="M0,6 L3,0 L6,6 Z" fill="#00f59b"/></marker>
+  </defs>
+  <rect width="400" height="240" fill="url(#bgCurl)"/>
+  <line x1="20" y1="205" x2="380" y2="205" stroke="#1e293b" stroke-width="2"/>
+  <circle cx="150" cy="60" r="12" fill="#cbd5e1"/>
+  <line x1="150" y1="72" x2="150" y2="145" stroke="#94a3b8" stroke-width="15" stroke-linecap="round"/>
+  <line x1="145" y1="145" x2="142" y2="202" stroke="#64748b" stroke-width="8" stroke-linecap="round"/>
+  <line x1="155" y1="145" x2="158" y2="202" stroke="#64748b" stroke-width="8" stroke-linecap="round"/>
+  <!-- 固定大臂与弯举小臂 -->
+  <line x1="154" y1="84" x2="156" y2="122" stroke="#e2e8f0" stroke-width="6" stroke-linecap="round"/>
+  <ellipse cx="156" cy="105" rx="7" ry="13" fill="#00f59b" opacity="0.9" filter="url(#glowCurl)"/>
+  <line x1="156" y1="122" x2="188" y2="92" stroke="#e2e8f0" stroke-width="5" stroke-linecap="round"/>
+  <rect x="180" y="84" width="22" height="10" rx="3" fill="#f59e0b"/>
+  <!-- 弧线弯举轨迹 -->
+  <path d="M 190,145 Q 208,118 192,96" fill="none" stroke="#00f59b" stroke-width="2.5" stroke-dasharray="4,2" marker-end="url(#arrowCurl)"/>
+  <text x="220" y="75" fill="#00f59b" font-size="12" font-weight="black">大臂夹紧 · 仅动肘关节</text>
+  <text x="220" y="95" fill="#cbd5e1" font-size="10">顶峰停顿 1s · 控速不借力</text>
+  <text x="220" y="115" fill="#f59e0b" font-size="10">打球日留2次余力不力竭</text>
+</svg>"""
+    },
+
+    # 37. 龙门架绳索三头下压
+    "cable_tricep_pushdown": {
+        "title": "龙门架绳索三头下压 (Cable Tricep Pushdown)",
+        "equipment": "龙门架高位滑轮 + 双头绳",
+        "target": "肱三头肌外侧头、长头与内侧头",
+        "volleyballFocus": "顺滑模拟扣球终末伸肘鞭打；打球日仅作轻重量泵感激活，严防三头肌过度酸胀导致扣球发沉",
+        "breathing": "向下压直手臂时呼气，控制向上回放时吸气。",
+        "steps": [
+            "面对龙门架高位滑轮站立，身体微前倾 10°，双手对握双头绳，大臂紧贴肋部两侧。",
+            "固定手肘位置作为轴心，发力将绳索垂直向下压至双臂完全伸直。",
+            "在最低点顺势将双头绳向两侧微拉开，挤压肱三头肌顶峰 0.5 秒。",
+            "控制重量缓慢屈肘回升至前臂与地面平行（或略高），保持全程张力。"
+        ],
+        "mistakes": [
+            "重量过大导致手肘上下前后大幅度甩动或用身体向下压砸。",
+            "在赛前将其练至完全力竭（会导致下午扣球挥臂发软）。"
+        ],
+        "svg": """<svg viewBox="0 0 400 240" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bgPushdown" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#0b1120"/><stop offset="100%" stop-color="#0f172a"/></linearGradient>
+    <filter id="glowPushdown"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    <marker id="arrowDownTri" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto"><path d="M0,0 L3,6 L6,0 Z" fill="#00f59b"/></marker>
+  </defs>
+  <rect width="400" height="240" fill="url(#bgPushdown)"/>
+  <line x1="20" y1="205" x2="380" y2="205" stroke="#1e293b" stroke-width="2"/>
+  <rect x="60" y="30" width="12" height="175" fill="#334155"/>
+  <circle cx="66" cy="40" r="7" fill="#64748b"/>
+  <!-- 站立微前倾人物 -->
+  <circle cx="170" cy="65" r="12" fill="#cbd5e1"/>
+  <line x1="170" y1="77" x2="178" y2="145" stroke="#94a3b8" stroke-width="15" stroke-linecap="round"/>
+  <line x1="175" y1="145" x2="165" y2="202" stroke="#64748b" stroke-width="8" stroke-linecap="round"/>
+  <line x1="181" y1="145" x2="195" y2="202" stroke="#64748b" stroke-width="8" stroke-linecap="round"/>
+  <!-- 大臂贴体侧，后侧三头肌高亮，小臂下压伸直 -->
+  <line x1="168" y1="88" x2="160" y2="122" stroke="#e2e8f0" stroke-width="6" stroke-linecap="round"/>
+  <ellipse cx="169" cy="108" rx="6" ry="12" fill="#00f59b" opacity="0.9" filter="url(#glowPushdown)"/>
+  <line x1="160" y1="122" x2="140" y2="155" stroke="#e2e8f0" stroke-width="5" stroke-linecap="round"/>
+  <!-- 绳索连接 -->
+  <line x1="72" y1="44" x2="140" y2="155" stroke="#f59e0b" stroke-width="2.5"/>
+  <circle cx="140" cy="155" r="5" fill="#f59e0b"/>
+  <line x1="122" y1="110" x2="122" y2="148" stroke="#00f59b" stroke-width="3" marker-end="url(#arrowDownTri)"/>
+  <text x="215" y="75" fill="#00f59b" font-size="12" font-weight="black">固定双肘 · 垂直下压分绳</text>
+  <text x="215" y="95" fill="#cbd5e1" font-size="10">轻中重量激活(15kg×15次)</text>
+  <text x="215" y="115" fill="#f59e0b" font-size="10">严禁力竭以防下午扣球发沉</text>
+</svg>"""
     }
 }
 
