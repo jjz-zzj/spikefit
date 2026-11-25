@@ -259,131 +259,159 @@
         </p>
       </section>
 
-      <!-- 排球实战打卡卡片 (支持高频 5-7 天打卡与疲劳反馈) -->
-      <section class="glass-panel rounded-2xl p-4 border border-slate-800 transition">
-        <div class="flex items-center justify-between">
-          <div class="flex items-center space-x-2.5">
-            <span class="text-2xl">🏐</span>
-            <div>
-              <h2 class="text-base font-bold text-white">排球运动打卡</h2>
-              <p class="text-xs text-slate-400">日常排球、对抗比赛与扣球专项摸高</p>
+      <!-- 今日运动记录：添加型多场次/多类型打卡模块 -->
+      <section class="space-y-3">
+        <!-- 头部标题与一键添加运动按钮栏 -->
+        <div class="glass-panel rounded-2xl p-4 border border-slate-800 space-y-3">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <div class="flex items-center space-x-2.5">
+              <span class="text-2xl">⚡</span>
+              <div>
+                <h2 class="text-base font-bold text-white flex items-center space-x-2">
+                  <span>运动与排球打卡</span>
+                  <span class="text-xs bg-slate-800 text-brand-orange px-2 py-0.5 rounded-full font-num">{{ todayWorkouts.length }} 场</span>
+                </h2>
+                <p class="text-xs text-slate-400">支持一天打两次排球、多次爬坡及其他运动叠加</p>
+              </div>
             </div>
           </div>
-          <label class="relative inline-flex items-center cursor-pointer">
-            <input type="checkbox" v-model="todayVolleyball.enabled" class="sr-only peer">
-            <div class="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-orange"></div>
-          </label>
+
+          <!-- 添加运动按钮栏 -->
+          <div class="grid grid-cols-3 gap-2 pt-1">
+            <button @click="addWorkoutSession('volleyball')" class="bg-orange-500/15 hover:bg-orange-500 hover:text-black text-brand-orange border border-orange-500/40 font-bold text-xs py-2.5 px-2 rounded-xl transition flex items-center justify-center space-x-1 active:scale-95">
+              <span>＋ 🏐</span>
+              <span>添加排球</span>
+            </button>
+            <button @click="addWorkoutSession('treadmill')" class="bg-blue-500/15 hover:bg-blue-500 hover:text-black text-brand-blue border border-blue-500/40 font-bold text-xs py-2.5 px-2 rounded-xl transition flex items-center justify-center space-x-1 active:scale-95">
+              <span>＋ 🧗</span>
+              <span>添加爬坡</span>
+            </button>
+            <button @click="showOtherWorkoutPicker = !showOtherWorkoutPicker" :class="showOtherWorkoutPicker ? 'bg-brand-volt text-black border-brand-volt' : 'bg-emerald-500/15 hover:bg-emerald-500 hover:text-black text-brand-volt border-emerald-500/40'" class="border font-bold text-xs py-2.5 px-2 rounded-xl transition flex items-center justify-center space-x-1 active:scale-95">
+              <span>＋ 🏃</span>
+              <span>其他运动</span>
+            </button>
+          </div>
+
+          <!-- 其他运动快捷选择抽屉 -->
+          <div v-if="showOtherWorkoutPicker" class="bg-slate-950/80 border border-emerald-500/30 rounded-xl p-2.5 grid grid-cols-2 sm:grid-cols-3 gap-1.5">
+            <button v-for="preset in OTHER_WORKOUT_PRESETS" :key="preset.key" @click="addWorkoutSession('other', preset)" class="text-left bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-brand-volt/50 p-2 rounded-lg text-xs transition flex items-center space-x-1.5">
+              <span>{{ preset.icon }}</span>
+              <div class="truncate">
+                <span class="text-white font-bold block truncate">{{ preset.title }}</span>
+                <span class="text-[10px] text-slate-400">MET {{ preset.met }}</span>
+              </div>
+            </button>
+          </div>
         </div>
 
-        <!-- 展开排球设置 -->
-        <div v-if="todayVolleyball.enabled" class="mt-4 pt-3 border-t border-slate-800/80 space-y-3">
-          <!-- 运动对抗强度 -->
-          <div>
-            <label class="text-xs text-slate-300 font-medium mb-1.5 block">选择运动强度：</label>
-            <div class="grid grid-cols-3 gap-2">
-              <button @click="todayVolleyball.intensity = 'casual'" :class="todayVolleyball.intensity === 'casual' ? 'bg-orange-500 text-black font-bold' : 'bg-slate-900 text-slate-300 border border-slate-800'" class="py-2 px-1 rounded-xl text-xs transition">
-                休闲传垫 (MET 4.0)
-              </button>
-              <button @click="todayVolleyball.intensity = 'spiking_drills'" :class="todayVolleyball.intensity === 'spiking_drills' ? 'bg-orange-500 text-black font-bold' : 'bg-slate-900 text-slate-300 border border-slate-800'" class="py-2 px-1 rounded-xl text-xs transition">
-                扣球摸高 (MET 6.5)
-              </button>
-              <button @click="todayVolleyball.intensity = 'competitive'" :class="todayVolleyball.intensity === 'competitive' ? 'bg-orange-500 text-black font-bold' : 'bg-slate-900 text-slate-300 border border-slate-800'" class="py-2 px-1 rounded-xl text-xs transition">
-                激烈对抗赛 (MET 8.0)
+        <!-- 无运动记录提示 -->
+        <div v-if="todayWorkouts.length === 0" class="glass-panel rounded-2xl p-6 text-center border border-dashed border-slate-700 text-xs text-slate-400">
+          尚未添加今日排球或有氧记录。点击上方按钮随时添加（可多次添加不同时段排球或其他运动）。
+        </div>
+
+        <!-- 已添加的运动条目卡片列表 -->
+        <div v-for="(w, wIdx) in todayWorkouts" :key="w.id" class="glass-panel rounded-2xl p-4 border transition space-y-3" :class="w.type === 'volleyball' ? 'border-orange-500/30' : (w.type === 'treadmill' ? 'border-blue-500/30' : 'border-emerald-500/30')">
+          <!-- 卡片顶部：图标 + 可编辑名称/时段 + 单项能耗 + 删除 -->
+          <div class="flex items-center justify-between gap-2 border-b border-slate-800/80 pb-2.5">
+            <div class="flex items-center space-x-2 flex-1 min-w-0">
+              <span class="text-xl shrink-0">{{ w.type === 'volleyball' ? '🏐' : (w.type === 'treadmill' ? '🧗' : (w.icon || '⚡')) }}</span>
+              <input v-if="w.type === 'other'" type="text" v-model="w.title" @change="saveState()" class="bg-slate-950 border border-slate-700 rounded-lg px-2 py-1 text-xs font-bold text-white w-36 sm:w-44 focus:outline-none focus:border-brand-volt">
+              <span v-else class="text-sm font-bold text-white truncate">{{ w.title || (w.type === 'volleyball' ? '排球实战对抗' : '坡度爬坡') }}</span>
+              <input type="text" v-model="w.timeSlot" @change="saveState()" placeholder="时段(如晚上)" class="bg-slate-900 border border-slate-800 rounded-md px-2 py-0.5 text-[11px] text-slate-300 w-20 text-center focus:outline-none focus:border-slate-600" title="可修改时段标记，如：下午场、晚上场">
+            </div>
+            <div class="flex items-center space-x-2 shrink-0">
+              <span class="font-num text-sm font-extrabold" :class="w.type === 'volleyball' ? 'text-brand-orange' : (w.type === 'treadmill' ? 'text-brand-blue' : 'text-brand-volt')">
+                +{{ calculateSingleWorkoutCalories(w) }} kcal
+              </span>
+              <button @click="removeWorkoutSession(wIdx)" class="w-7 h-7 rounded-lg bg-slate-900 hover:bg-rose-950/60 border border-slate-800 hover:border-rose-500/40 text-slate-400 hover:text-rose-400 text-xs transition flex items-center justify-center" title="移除此运动记录">
+                ✕
               </button>
             </div>
           </div>
 
-          <!-- 时长滑块 -->
-          <div>
-            <div class="flex justify-between text-xs text-slate-300 mb-1">
-              <span>运动时长:</span>
-              <span class="text-brand-orange font-bold font-num text-sm">{{ todayVolleyball.duration }} 分钟</span>
+          <!-- 类型 1：排球运动参数 -->
+          <div v-if="w.type === 'volleyball'" class="space-y-3">
+            <div>
+              <label class="text-xs text-slate-300 font-medium mb-1.5 block">运动强度：</label>
+              <div class="grid grid-cols-3 gap-2">
+                <button @click="w.intensity = 'casual'; saveState()" :class="w.intensity === 'casual' ? 'bg-orange-500 text-black font-bold' : 'bg-slate-900 text-slate-300 border border-slate-800'" class="py-2 px-1 rounded-xl text-xs transition">
+                  休闲传垫 (MET 4.0)
+                </button>
+                <button @click="w.intensity = 'spiking_drills'; saveState()" :class="w.intensity === 'spiking_drills' ? 'bg-orange-500 text-black font-bold' : 'bg-slate-900 text-slate-300 border border-slate-800'" class="py-2 px-1 rounded-xl text-xs transition">
+                  扣球摸高 (MET 6.5)
+                </button>
+                <button @click="w.intensity = 'competitive'; saveState()" :class="w.intensity === 'competitive' ? 'bg-orange-500 text-black font-bold' : 'bg-slate-900 text-slate-300 border border-slate-800'" class="py-2 px-1 rounded-xl text-xs transition">
+                  激烈对抗赛 (MET 8.0)
+                </button>
+              </div>
             </div>
-            <input type="range" min="15" max="180" step="15" v-model.number="todayVolleyball.duration" class="w-full accent-brand-orange cursor-pointer">
-          </div>
 
-          <!-- 身体反馈评分 (选填项，辅助次日动态推荐) -->
-          <div class="bg-slate-950/60 p-3 rounded-xl border border-slate-800/80">
-            <div class="text-xs text-slate-300 font-bold mb-2 flex items-center justify-between">
-              <span>🩺 身体感受打分 (选填，自动校准力量推荐)</span>
+            <div>
+              <div class="flex justify-between text-xs text-slate-300 mb-1">
+                <span>本场时长:</span>
+                <span class="text-brand-orange font-bold font-num text-sm">{{ w.duration }} 分钟</span>
+              </div>
+              <input type="range" min="15" max="180" step="15" v-model.number="w.duration" @change="saveState()" class="w-full accent-brand-orange cursor-pointer">
             </div>
-            <div class="grid grid-cols-2 gap-3 text-xs">
+
+            <div class="bg-slate-950/60 p-2.5 rounded-xl border border-slate-800/80 grid grid-cols-2 gap-3 text-xs">
               <div>
                 <span class="text-slate-400 block mb-1">肩部疲劳感:</span>
                 <div class="flex space-x-1">
-                  <span v-for="star in 5" :key="'s'+star" @click="todayVolleyball.shoulderFatigue = star" class="cursor-pointer text-lg" :class="star <= todayVolleyball.shoulderFatigue ? 'text-amber-400' : 'text-slate-700'">★</span>
+                  <span v-for="star in 5" :key="'ws'+wIdx+'_'+star" @click="w.shoulderFatigue = star; saveState()" class="cursor-pointer text-base" :class="star <= (w.shoulderFatigue || 2) ? 'text-amber-400' : 'text-slate-700'">★</span>
                 </div>
               </div>
               <div>
                 <span class="text-slate-400 block mb-1">膝盖疲劳感:</span>
                 <div class="flex space-x-1">
-                  <span v-for="star in 5" :key="'k'+star" @click="todayVolleyball.kneeFatigue = star" class="cursor-pointer text-lg" :class="star <= todayVolleyball.kneeFatigue ? 'text-amber-400' : 'text-slate-700'">★</span>
+                  <span v-for="star in 5" :key="'wk'+wIdx+'_'+star" @click="w.kneeFatigue = star; saveState()" class="cursor-pointer text-base" :class="star <= (w.kneeFatigue || 2) ? 'text-amber-400' : 'text-slate-700'">★</span>
                 </div>
               </div>
             </div>
           </div>
-        </div>
-      </section>
 
-      <!-- 健身房爬坡机卡片 (ACSM 公式计算) -->
-      <section class="glass-panel rounded-2xl p-4 border border-slate-800 transition">
-        <div class="flex items-center justify-between">
-          <div class="flex items-center space-x-2.5">
-            <span class="text-2xl">🧗</span>
-            <div>
-              <h2 class="text-base font-bold text-white">健身房坡度爬坡机</h2>
-              <p class="text-xs text-slate-400">高燃脂、无膝盖冲击、强化臀腿后链</p>
+          <!-- 类型 2：爬坡跑步机参数 -->
+          <div v-else-if="w.type === 'treadmill'" class="space-y-3">
+            <div class="bg-blue-950/30 border border-blue-500/20 p-2.5 rounded-xl flex items-center justify-between text-xs">
+              <div>
+                <span class="text-slate-400">VO₂: </span>
+                <span class="font-bold text-brand-blue">{{ getWorkoutTreadmillDetails(w).vo2 }} ml/kg</span>
+              </div>
+              <div>
+                <span class="text-slate-400">MET: </span>
+                <span class="font-bold text-brand-blue">{{ getWorkoutTreadmillDetails(w).met }}</span>
+              </div>
+              <div>
+                <span class="text-slate-400">能耗率: </span>
+                <span class="font-bold text-brand-blue">{{ getWorkoutTreadmillDetails(w).kcalPerMin }} kcal/m</span>
+              </div>
             </div>
-          </div>
-          <label class="relative inline-flex items-center cursor-pointer">
-            <input type="checkbox" v-model="todayTreadmill.enabled" class="sr-only peer">
-            <div class="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-blue"></div>
-          </label>
-        </div>
-
-        <!-- 展开爬坡机参数设置 -->
-        <div v-if="todayTreadmill.enabled" class="mt-4 pt-3 border-t border-slate-800/80 space-y-3">
-          <!-- 实时 ACSM 数据指标 -->
-          <div class="bg-blue-950/30 border border-blue-500/20 p-2.5 rounded-xl flex items-center justify-between text-xs">
-            <div>
-              <span class="text-slate-400">摄氧量 VO₂: </span>
-              <span class="font-bold text-brand-blue">{{ treadmillDetails.vo2 }} ml/kg/min</span>
-            </div>
-            <div>
-              <span class="text-slate-400">强度 MET: </span>
-              <span class="font-bold text-brand-blue">{{ treadmillDetails.met }}</span>
-            </div>
-            <div>
-              <span class="text-slate-400">能耗率: </span>
-              <span class="font-bold text-brand-blue">{{ treadmillDetails.kcalPerMin }} kcal/min</span>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+              <div>
+                <div class="flex justify-between text-slate-300 mb-1"><span>坡度:</span><span class="text-brand-blue font-bold font-num">{{ w.incline }} %</span></div>
+                <input type="range" min="0" max="18" step="1" v-model.number="w.incline" @change="saveState()" class="w-full accent-brand-blue cursor-pointer">
+              </div>
+              <div>
+                <div class="flex justify-between text-slate-300 mb-1"><span>速度:</span><span class="text-brand-blue font-bold font-num">{{ w.speed }} km/h</span></div>
+                <input type="range" min="2.5" max="6.5" step="0.1" v-model.number="w.speed" @change="saveState()" class="w-full accent-brand-blue cursor-pointer">
+              </div>
+              <div>
+                <div class="flex justify-between text-slate-300 mb-1"><span>时长:</span><span class="text-brand-blue font-bold font-num">{{ w.duration }} 分钟</span></div>
+                <input type="range" min="5" max="60" step="5" v-model.number="w.duration" @change="saveState()" class="w-full accent-brand-blue cursor-pointer">
+              </div>
             </div>
           </div>
 
-          <!-- 坡度滑块 -->
-          <div>
-            <div class="flex justify-between text-xs text-slate-300 mb-1">
-              <span>跑步机坡度 (Incline):</span>
-              <span class="text-brand-blue font-bold font-num text-sm">{{ todayTreadmill.incline }} %</span>
+          <!-- 类型 3：其他运动参数 -->
+          <div v-else class="grid grid-cols-2 gap-3 text-xs">
+            <div>
+              <div class="flex justify-between text-slate-300 mb-1"><span>运动时长:</span><span class="text-brand-volt font-bold font-num">{{ w.duration }} 分钟</span></div>
+              <input type="range" min="10" max="180" step="5" v-model.number="w.duration" @change="saveState()" class="w-full accent-brand-volt cursor-pointer">
             </div>
-            <input type="range" min="0" max="18" step="1" v-model.number="todayTreadmill.incline" class="w-full accent-brand-blue cursor-pointer">
-          </div>
-
-          <!-- 速度滑块 -->
-          <div>
-            <div class="flex justify-between text-xs text-slate-300 mb-1">
-              <span>步行速度 (Speed):</span>
-              <span class="text-brand-blue font-bold font-num text-sm">{{ todayTreadmill.speed }} km/h</span>
+            <div>
+              <div class="flex justify-between text-slate-300 mb-1"><span>强度 (MET):</span><span class="text-brand-volt font-bold font-num">{{ w.met }}</span></div>
+              <input type="range" min="2.0" max="11.0" step="0.5" v-model.number="w.met" @change="saveState()" class="w-full accent-brand-volt cursor-pointer">
             </div>
-            <input type="range" min="2.5" max="6.5" step="0.1" v-model.number="todayTreadmill.speed" class="w-full accent-brand-blue cursor-pointer">
-          </div>
-
-          <!-- 时长滑块 -->
-          <div>
-            <div class="flex justify-between text-xs text-slate-300 mb-1">
-              <span>爬坡时长:</span>
-              <span class="text-brand-blue font-bold font-num text-sm">{{ todayTreadmill.duration }} 分钟</span>
-            </div>
-            <input type="range" min="5" max="60" step="5" v-model.number="todayTreadmill.duration" class="w-full accent-brand-blue cursor-pointer">
           </div>
         </div>
       </section>
@@ -595,7 +623,7 @@
               <!-- 排球比赛微标 -->
               <div v-if="day.workout && day.workout.volleyball && day.workout.volleyball.enabled" class="flex items-center space-x-1 text-[9px] bg-orange-500/20 text-brand-orange px-1 py-0.5 rounded truncate font-medium">
                 <span>🏐</span>
-                <span class="truncate">{{ day.workout.volleyball.duration }}分</span>
+                <span class="truncate">{{ day.workout.volleyballCount > 1 ? day.workout.volleyballCount + '场·' : '' }}{{ day.workout.volleyball.duration }}分</span>
               </div>
               <!-- 力量训练微标 -->
               <div v-if="day.workout && day.workout.exercises && day.workout.exercises.length" class="flex items-center space-x-1 text-[9px] bg-blue-500/20 text-blue-300 px-1 py-0.5 rounded truncate font-medium">
@@ -766,6 +794,28 @@
             </h4>
           </div>
 
+          <!-- 排球/爬坡/其他多场次运动记录 -->
+          <div v-if="selectedDayDetail.workout.workouts && selectedDayDetail.workout.workouts.length" class="space-y-2">
+            <div v-for="(w, wIdx) in selectedDayDetail.workout.workouts" :key="w.id || wIdx" class="bg-slate-950/60 p-3 rounded-xl border border-slate-800 flex items-center justify-between text-xs">
+              <div class="flex items-center space-x-2">
+                <span class="text-xl">{{ w.type === 'volleyball' ? '🏐' : (w.type === 'treadmill' ? '🧗' : (w.icon || '⚡')) }}</span>
+                <div>
+                  <span class="font-bold text-white">{{ w.title || (w.type === 'volleyball' ? '排球实战对抗' : '坡度爬坡') }}</span>
+                  <span v-if="w.timeSlot" class="text-[10px] text-slate-300 ml-1.5 bg-slate-800 px-1.5 py-0.5 rounded">{{ w.timeSlot }}</span>
+                  <span v-if="w.type === 'volleyball'" class="text-[10px] text-brand-orange ml-1.5 bg-orange-500/10 px-2 py-0.5 rounded-full border border-orange-500/20">
+                    {{ w.intensity === 'competitive' ? '激烈对抗赛' : (w.intensity === 'spiking_drills' ? '扣球摸高' : '休闲传垫') }}
+                  </span>
+                  <span v-else-if="w.type === 'treadmill'" class="text-[10px] text-slate-400 ml-1.5">坡度 {{ w.incline }}% · {{ w.speed }} km/h</span>
+                </div>
+              </div>
+              <div class="text-right">
+                <span class="font-bold font-num text-sm" :class="w.type === 'volleyball' ? 'text-brand-orange' : 'text-brand-blue'">{{ w.duration }} 分钟</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 兼容旧版单条显示 (当无 workouts 数组时) -->
+          <template v-else>
           <!-- 排球比赛记录 -->
           <div v-if="selectedDayDetail.workout.volleyball && selectedDayDetail.workout.volleyball.enabled" class="bg-slate-950/60 p-3 rounded-xl border border-slate-800 flex items-center justify-between text-xs">
             <div class="flex items-center space-x-2">
@@ -794,6 +844,7 @@
             </div>
             <span class="font-bold text-brand-volt font-num text-sm">{{ selectedDayDetail.workout.treadmill.duration }} 分钟</span>
           </div>
+          </template>
 
           <!-- 动作组数清单 -->
           <div v-if="selectedDayDetail.workout.exercises && selectedDayDetail.workout.exercises.length" class="space-y-2">
@@ -813,7 +864,7 @@
             </div>
           </div>
 
-          <div v-if="!selectedDayDetail.workout.exercises.length && !selectedDayDetail.workout.volleyball?.enabled && !selectedDayDetail.workout.treadmill?.enabled" class="text-center py-4 text-slate-500 text-xs">
+          <div v-if="!selectedDayDetail.workout.exercises.length && !selectedDayDetail.workout.volleyball?.enabled && !selectedDayDetail.workout.treadmill?.enabled && !(selectedDayDetail.workout.workouts && selectedDayDetail.workout.workouts.length)" class="text-center py-4 text-slate-500 text-xs">
             当天暂无安排训练记录
           </div>
         </div>
@@ -4883,9 +4934,11 @@ const app = createApp({
       ]
     });
 
-    // 当前视图绑定的活动计划表单数据
+    // 当前视图绑定的活动计划表单数据 (支持一天添加多场排球、多次爬坡及其他不同运动)
+    const todayWorkouts = ref([]);
+
     const todayVolleyball = ref({
-      enabled: true,
+      enabled: false,
       duration: 90,
       intensity: 'competitive',
       shoulderFatigue: 2,
@@ -4894,11 +4947,21 @@ const app = createApp({
     });
 
     const todayTreadmill = ref({
-      enabled: true,
+      enabled: false,
       duration: 15,
       incline: 8,
       speed: 4.0
     });
+
+    // 其他运动快捷预设库
+    const OTHER_WORKOUT_PRESETS = [
+      { key: 'running', title: '户外/跑步机慢跑', icon: '🏃', met: 8.5, duration: 30 },
+      { key: 'cycling', title: '动感单车 / 骑行', icon: '🚴', met: 7.0, duration: 30 },
+      { key: 'badminton', title: '羽毛球对抗', icon: '🏸', met: 6.0, duration: 60 },
+      { key: 'swimming', title: '游泳锻炼', icon: '🏊', met: 7.5, duration: 40 },
+      { key: 'stretching', title: '赛后拉伸 / 泡沫轴放松', icon: '🧘', met: 2.5, duration: 20 },
+      { key: 'custom', title: '自定义运动', icon: '⚡', met: 5.5, duration: 30 }
+    ];
 
     const todayExercises = ref([]);
 
@@ -5005,37 +5068,59 @@ const app = createApp({
     };
 
     // ================= 计算属性：实时能耗与训练量 =================
-    // 爬坡机卡路里
-    const treadmillCalories = computed(() => {
-      if (!todayTreadmill.value.enabled) return 0;
-      const res = CalorieCalculator.calculateInclineTreadmill(
-        userProfile.value.weight,
-        todayTreadmill.value.speed,
-        todayTreadmill.value.incline,
-        todayTreadmill.value.duration
-      );
-      return res.calories;
-    });
+    const calculateSingleWorkoutCalories = (w) => {
+      if (!w) return 0;
+      const weight = userProfile.value.weight || 78;
+      if (w.type === 'volleyball') {
+        return CalorieCalculator.calculateVolleyball(weight, w.intensity || 'competitive', Number(w.duration) || 0).calories;
+      } else if (w.type === 'treadmill') {
+        return CalorieCalculator.calculateInclineTreadmill(weight, Number(w.speed) || 4.5, Number(w.incline) || 10, Number(w.duration) || 0).calories;
+      } else {
+        const met = Number(w.met) || 5.5;
+        const dur = Number(w.duration) || 0;
+        return Math.round(met * weight * (dur / 60));
+      }
+    };
 
-    // 爬坡机 MET 与 Kcal/min 详情
-    const treadmillDetails = computed(() => {
+    const getWorkoutTreadmillDetails = (w) => {
       return CalorieCalculator.calculateInclineTreadmill(
         userProfile.value.weight,
-        todayTreadmill.value.speed,
-        todayTreadmill.value.incline,
-        todayTreadmill.value.duration
+        Number(w?.speed) || 4.5,
+        Number(w?.incline) || 10,
+        Number(w?.duration) || 0
+      );
+    };
+
+    // 爬坡机卡路里 (汇总今日所有爬坡记录)
+    const treadmillCalories = computed(() => {
+      return (todayWorkouts.value || [])
+        .filter(w => w.type === 'treadmill')
+        .reduce((sum, w) => sum + calculateSingleWorkoutCalories(w), 0);
+    });
+
+    // 爬坡机 MET 与 Kcal/min 详情 (兼容单条汇总)
+    const treadmillDetails = computed(() => {
+      const firstTm = (todayWorkouts.value || []).find(w => w.type === 'treadmill');
+      return CalorieCalculator.calculateInclineTreadmill(
+        userProfile.value.weight,
+        firstTm ? firstTm.speed : todayTreadmill.value.speed,
+        firstTm ? firstTm.incline : todayTreadmill.value.incline,
+        firstTm ? firstTm.duration : todayTreadmill.value.duration
       );
     });
 
-    // 排球实战卡路里
+    // 排球实战卡路里 (汇总今日所有排球场次)
     const volleyballCalories = computed(() => {
-      if (!todayVolleyball.value.enabled) return 0;
-      const res = CalorieCalculator.calculateVolleyball(
-        userProfile.value.weight,
-        todayVolleyball.value.intensity,
-        todayVolleyball.value.duration
-      );
-      return res.calories;
+      return (todayWorkouts.value || [])
+        .filter(w => w.type === 'volleyball')
+        .reduce((sum, w) => sum + calculateSingleWorkoutCalories(w), 0);
+    });
+
+    // 其他运动卡路里 (汇总今日所有非排球/非爬坡运动)
+    const otherWorkoutCalories = computed(() => {
+      return (todayWorkouts.value || [])
+        .filter(w => w.type === 'other')
+        .reduce((sum, w) => sum + calculateSingleWorkoutCalories(w), 0);
     });
 
     // 力量与弹跳动作卡路里与总搬运容积 (Volume)
@@ -5064,7 +5149,7 @@ const app = createApp({
 
     // 当前视图日期总能量消耗 (kcal)
     const todayTotalCalories = computed(() => {
-      return treadmillCalories.value + volleyballCalories.value + strengthStats.value.calories;
+      return treadmillCalories.value + volleyballCalories.value + otherWorkoutCalories.value + strengthStats.value.calories;
     });
 
     // 等价食物/补给提示
@@ -5188,23 +5273,146 @@ const app = createApp({
     });
 
     // ================= 多日期切换与同步 =================
+    const showOtherWorkoutPicker = ref(false);
+
+    // 将单条历史或旧版 plan 对象平滑迁移为多笔 workouts 数组
+    const migratePlanToWorkouts = (plan) => {
+      if (!plan) return [];
+      if (Array.isArray(plan.workouts)) {
+        return JSON.parse(JSON.stringify(plan.workouts));
+      }
+      const list = [];
+      if (plan.volleyball && plan.volleyball.enabled) {
+        list.push({
+          id: 'wo_vb_migrated_' + Math.random().toString(36).substr(2, 4),
+          type: 'volleyball',
+          timeSlot: '实战',
+          title: '排球实战对抗',
+          intensity: plan.volleyball.intensity || 'competitive',
+          duration: Number(plan.volleyball.duration) || 90,
+          shoulderFatigue: Number(plan.volleyball.shoulderFatigue) || 2,
+          kneeFatigue: Number(plan.volleyball.kneeFatigue) || 2,
+          notes: plan.volleyball.notes || ''
+        });
+      }
+      if (plan.treadmill && plan.treadmill.enabled) {
+        list.push({
+          id: 'wo_tm_migrated_' + Math.random().toString(36).substr(2, 4),
+          type: 'treadmill',
+          timeSlot: '有氧',
+          title: '跑步机坡度爬坡',
+          incline: Number(plan.treadmill.incline) || 10,
+          speed: Number(plan.treadmill.speed) || 4.5,
+          duration: Number(plan.treadmill.duration) || 20,
+          notes: ''
+        });
+      }
+      return list;
+    };
+
+    // 根据 workouts 聚合出兼容旧版结构汇总对象 (用于向后兼容历史统计与推荐器)
+    const summarizeWorkoutsForLegacy = (workoutsList) => {
+      const vbs = (workoutsList || []).filter(w => w.type === 'volleyball');
+      const tms = (workoutsList || []).filter(w => w.type === 'treadmill');
+      const aggVb = vbs.length > 0 ? {
+        enabled: true,
+        duration: vbs.reduce((s, w) => s + (Number(w.duration) || 0), 0),
+        intensity: vbs[vbs.length - 1].intensity || 'competitive',
+        shoulderFatigue: Math.max(...vbs.map(w => Number(w.shoulderFatigue) || 1)),
+        kneeFatigue: Math.max(...vbs.map(w => Number(w.kneeFatigue) || 1)),
+        notes: vbs.map(w => `${w.timeSlot ? w.timeSlot + ':' : ''}${w.duration}分`).join(' + ')
+      } : { enabled: false, duration: 90, intensity: 'competitive', shoulderFatigue: 2, kneeFatigue: 2, notes: '' };
+
+      const aggTm = tms.length > 0 ? {
+        enabled: true,
+        duration: tms.reduce((s, w) => s + (Number(w.duration) || 0), 0),
+        incline: tms[0].incline || 10,
+        speed: tms[0].speed || 4.5
+      } : { enabled: false, duration: 15, incline: 8, speed: 4.0 };
+
+      return { volleyball: aggVb, treadmill: aggTm };
+    };
+
+    const addWorkoutSession = (type, presetObj = null) => {
+      const id = 'wo_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4);
+      if (type === 'volleyball') {
+        const vbCount = todayWorkouts.value.filter(w => w.type === 'volleyball').length;
+        const defaultSlot = vbCount === 0 ? '下午场' : (vbCount === 1 ? '晚上场' : `第${vbCount + 1}场`);
+        todayWorkouts.value.push({
+          id,
+          type: 'volleyball',
+          timeSlot: defaultSlot,
+          title: `排球${defaultSlot}`,
+          intensity: 'competitive',
+          duration: 90,
+          shoulderFatigue: 2,
+          kneeFatigue: 2,
+          notes: ''
+        });
+        showToast(`🏐 已添加【${defaultSlot}】排球记录`);
+      } else if (type === 'treadmill') {
+        const tmCount = todayWorkouts.value.filter(w => w.type === 'treadmill').length;
+        const slot = tmCount === 0 ? '有氧' : `第${tmCount + 1}次爬坡`;
+        todayWorkouts.value.push({
+          id,
+          type: 'treadmill',
+          timeSlot: slot,
+          title: '健身房坡度爬坡',
+          incline: 10,
+          speed: 4.5,
+          duration: 20,
+          notes: ''
+        });
+        showToast('🧗 已添加一次坡度爬坡记录');
+      } else if (type === 'other') {
+        const p = presetObj || OTHER_WORKOUT_PRESETS[0];
+        todayWorkouts.value.push({
+          id,
+          type: 'other',
+          icon: p.icon || '⚡',
+          timeSlot: '加练',
+          title: p.title || '其他运动',
+          met: p.met || 5.5,
+          duration: p.duration || 30,
+          notes: ''
+        });
+        showOtherWorkoutPicker.value = false;
+        showToast(`${p.icon || '⚡'} 已添加【${p.title}】`);
+      }
+      syncCurrentFormToDict();
+      saveState();
+    };
+
+    const removeWorkoutSession = (idx) => {
+      const item = todayWorkouts.value[idx];
+      todayWorkouts.value.splice(idx, 1);
+      syncCurrentFormToDict();
+      saveState();
+      if (item) showToast(`已移除【${item.title || '运动记录'}】`);
+    };
+
     const syncCurrentFormToDict = () => {
+      const legacy = summarizeWorkoutsForLegacy(todayWorkouts.value);
+      todayVolleyball.value = legacy.volleyball;
+      todayTreadmill.value = legacy.treadmill;
       dailyPlans.value[activePlanDate.value] = {
-        volleyball: JSON.parse(JSON.stringify(todayVolleyball.value)),
-        treadmill: JSON.parse(JSON.stringify(todayTreadmill.value)),
+        workouts: JSON.parse(JSON.stringify(todayWorkouts.value)),
+        volleyball: JSON.parse(JSON.stringify(legacy.volleyball)),
+        treadmill: JSON.parse(JSON.stringify(legacy.treadmill)),
         exercises: JSON.parse(JSON.stringify(todayExercises.value))
       };
     };
 
     const loadPlanFromDict = (dateStr) => {
       let targetPlan = dailyPlans.value[dateStr];
-      // 关键修复：若当前日期没有记录或为空，且是今日(2026-11-24)或预排日，自动载入量身定制的排球实战前胸部推力与核心方案
-      if (!targetPlan || (!targetPlan.exercises?.length && !targetPlan.volleyball?.enabled)) {
+      // 关键修复：若当前日期没有记录或为空，且是今日或预排日，自动载入量身定制方案
+      if (!targetPlan || (!targetPlan.exercises?.length && !targetPlan.volleyball?.enabled && !targetPlan.workouts?.length)) {
         if (dateStr === todayDate.value || dateStr === '2026-11-24' || dateStr === tomorrowDate.value) {
           targetPlan = JSON.parse(JSON.stringify(TOMORROW_PRESET_PLAN));
           dailyPlans.value[dateStr] = targetPlan;
         } else {
           targetPlan = {
+            workouts: [],
             volleyball: { enabled: false, duration: 90, intensity: 'competitive', shoulderFatigue: 2, kneeFatigue: 2, notes: '' },
             treadmill: { enabled: false, duration: 20, incline: 10, speed: 4.5 },
             exercises: []
@@ -5212,8 +5420,10 @@ const app = createApp({
         }
       }
 
-      todayVolleyball.value = JSON.parse(JSON.stringify(targetPlan.volleyball || { enabled: false }));
-      todayTreadmill.value = JSON.parse(JSON.stringify(targetPlan.treadmill || { enabled: false }));
+      todayWorkouts.value = migratePlanToWorkouts(targetPlan);
+      const legacy = summarizeWorkoutsForLegacy(todayWorkouts.value);
+      todayVolleyball.value = legacy.volleyball;
+      todayTreadmill.value = legacy.treadmill;
       todayExercises.value = JSON.parse(JSON.stringify(targetPlan.exercises || []));
       loadMealsFromDict(dateStr);
     };
@@ -5375,12 +5585,15 @@ const app = createApp({
       };
     });
 
-    // 辅助：获取任意一天的训练数据（从 dailyPlans 或 historyLogs 或当前表单）
+    // 辅助：获取任意一天的训练数据（支持多笔 workouts、dailyPlans 与 historyLogs 向后兼容）
     const getDayWorkoutData = (dateStr) => {
       if (dateStr === activePlanDate.value) {
+        const legacy = summarizeWorkoutsForLegacy(todayWorkouts.value);
         return {
-          volleyball: todayVolleyball.value.enabled ? { ...todayVolleyball.value } : null,
-          treadmill: todayTreadmill.value.enabled ? { ...todayTreadmill.value } : null,
+          workouts: [...todayWorkouts.value],
+          volleyballCount: todayWorkouts.value.filter(w => w.type === 'volleyball').length,
+          volleyball: legacy.volleyball.enabled ? legacy.volleyball : null,
+          treadmill: legacy.treadmill.enabled ? legacy.treadmill : null,
           exercises: [...todayExercises.value],
           totalCalories: todayTotalCalories.value,
           totalVolume: strengthStats.value.volume
@@ -5388,9 +5601,13 @@ const app = createApp({
       }
       const hist = historyLogs.value.find(l => l.date === dateStr);
       if (hist) {
+        const wList = migratePlanToWorkouts(hist);
+        const legacy = summarizeWorkoutsForLegacy(wList);
         return {
-          volleyball: hist.volleyball,
-          treadmill: hist.treadmill,
+          workouts: wList,
+          volleyballCount: wList.filter(w => w.type === 'volleyball').length,
+          volleyball: legacy.volleyball.enabled ? legacy.volleyball : hist.volleyball,
+          treadmill: legacy.treadmill.enabled ? legacy.treadmill : hist.treadmill,
           exercises: hist.exercises || [],
           totalCalories: hist.totalCalories || 0,
           totalVolume: hist.totalVolume || 0
@@ -5398,28 +5615,31 @@ const app = createApp({
       }
       const plan = dailyPlans.value[dateStr];
       if (plan) {
+        const wList = migratePlanToWorkouts(plan);
+        const legacy = summarizeWorkoutsForLegacy(wList);
         let cal = 0;
         let vol = 0;
-        if (plan.volleyball && plan.volleyball.enabled) {
-          cal += CalorieCalculator.calculateVolleyball(userProfile.value.weight, plan.volleyball.intensity, plan.volleyball.duration).calories;
-        }
-        if (plan.treadmill && plan.treadmill.enabled) {
-          cal += CalorieCalculator.calculateInclineTreadmill(userProfile.value.weight, plan.treadmill.speed, plan.treadmill.incline, plan.treadmill.duration).calories;
-        }
+        wList.forEach(w => {
+          cal += calculateSingleWorkoutCalories(w);
+        });
         (plan.exercises || []).forEach(ex => {
           const res = CalorieCalculator.calculateStrengthExercise(userProfile.value.weight, ex, ex.sets || []);
           cal += res.calories;
           vol += res.totalVolume;
         });
         return {
-          volleyball: (plan.volleyball && plan.volleyball.enabled) ? plan.volleyball : null,
-          treadmill: (plan.treadmill && plan.treadmill.enabled) ? plan.treadmill : null,
+          workouts: wList,
+          volleyballCount: wList.filter(w => w.type === 'volleyball').length,
+          volleyball: legacy.volleyball.enabled ? legacy.volleyball : null,
+          treadmill: legacy.treadmill.enabled ? legacy.treadmill : null,
           exercises: plan.exercises || [],
           totalCalories: cal,
           totalVolume: vol
         };
       }
       return {
+        workouts: [],
+        volleyballCount: 0,
         volleyball: null,
         treadmill: null,
         exercises: [],
@@ -5490,7 +5710,7 @@ const app = createApp({
           intake += Number(meal.calories) || 0;
         });
 
-        const hasData = (workout.totalCalories > 0 || workout.exercises.length > 0 || (workout.volleyball && workout.volleyball.enabled) || meals.length > 0 || dayWeight !== null);
+        const hasData = (workout.totalCalories > 0 || workout.exercises.length > 0 || (workout.workouts && workout.workouts.length > 0) || (workout.volleyball && workout.volleyball.enabled) || meals.length > 0 || dayWeight !== null);
         const deficitStats = hasData ? CalorieCalculator.calculateCalorieDeficit(dayBmr, workout.totalCalories, intake) : null;
 
         grid.push({
@@ -5857,10 +6077,23 @@ const app = createApp({
 
       const cardioItem = rec.exercises.find(e => e.isCardio);
       if (cardioItem) {
-        todayTreadmill.value.enabled = true;
-        todayTreadmill.value.duration = cardioItem.duration || 25;
-        todayTreadmill.value.incline = cardioItem.incline || 12;
-        todayTreadmill.value.speed = cardioItem.speed || 4.5;
+        const existingTm = todayWorkouts.value.find(w => w.type === 'treadmill');
+        if (existingTm) {
+          existingTm.duration = cardioItem.duration || 25;
+          existingTm.incline = cardioItem.incline || 12;
+          existingTm.speed = cardioItem.speed || 4.5;
+        } else {
+          todayWorkouts.value.push({
+            id: 'wo_rec_tm_' + Date.now(),
+            type: 'treadmill',
+            timeSlot: '有氧',
+            title: '健身房坡度爬坡',
+            duration: cardioItem.duration || 25,
+            incline: cardioItem.incline || 12,
+            speed: cardioItem.speed || 4.5,
+            notes: ''
+          });
+        }
       }
 
       rec.exercises.forEach(recItem => {
@@ -5902,9 +6135,10 @@ const app = createApp({
         return;
       }
 
-      if (todayVolleyball.value.enabled) {
-        fatigue.value.shoulder = todayVolleyball.value.shoulderFatigue;
-        fatigue.value.knee = todayVolleyball.value.kneeFatigue;
+      const legacy = summarizeWorkoutsForLegacy(todayWorkouts.value);
+      if (legacy.volleyball.enabled) {
+        fatigue.value.shoulder = legacy.volleyball.shoulderFatigue;
+        fatigue.value.knee = legacy.volleyball.kneeFatigue;
       }
 
       const logEntry = {
@@ -5914,8 +6148,9 @@ const app = createApp({
         totalCalories: todayTotalCalories.value,
         totalVolume: strengthStats.value.volume,
         fatigue: { ...fatigue.value },
-        volleyball: todayVolleyball.value.enabled ? { ...todayVolleyball.value } : null,
-        treadmill: todayTreadmill.value.enabled ? { ...todayTreadmill.value } : null,
+        workouts: JSON.parse(JSON.stringify(todayWorkouts.value)),
+        volleyball: legacy.volleyball.enabled ? { ...legacy.volleyball } : null,
+        treadmill: legacy.treadmill.enabled ? { ...legacy.treadmill } : null,
         exercises: JSON.parse(JSON.stringify(todayExercises.value))
       };
 
@@ -5933,6 +6168,7 @@ const app = createApp({
     const resetTodayPlan = () => {
       if (confirm(`确定要清空${planDateMode.value === 'tomorrow' ? '明日' : '今日'}的计划吗？`)) {
         todayExercises.value = [];
+        todayWorkouts.value = [];
         todayVolleyball.value.enabled = false;
         todayTreadmill.value.enabled = false;
         syncCurrentFormToDict();
@@ -6300,7 +6536,7 @@ const app = createApp({
       });
 
       if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('./sw.js?v=20261125_03').then(reg => {
+        navigator.serviceWorker.register('./sw.js?v=20261125_04').then(reg => {
           reg.update();
         }).catch(err => {
           console.log('SW registration note:', err);
@@ -6319,6 +6555,13 @@ const app = createApp({
       switchPlanDate,
       userProfile,
       fatigue,
+      todayWorkouts,
+      OTHER_WORKOUT_PRESETS,
+      showOtherWorkoutPicker,
+      addWorkoutSession,
+      removeWorkoutSession,
+      calculateSingleWorkoutCalories,
+      getWorkoutTreadmillDetails,
       todayVolleyball,
       todayTreadmill,
       todayExercises,
@@ -6393,6 +6636,7 @@ const app = createApp({
       treadmillCalories,
       treadmillDetails,
       volleyballCalories,
+      otherWorkoutCalories,
       strengthStats,
       todayTotalCalories,
       calorieEquivalents,

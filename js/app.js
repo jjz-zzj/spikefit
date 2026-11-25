@@ -333,9 +333,11 @@ const app = createApp({
       ]
     });
 
-    // 当前视图绑定的活动计划表单数据
+    // 当前视图绑定的活动计划表单数据 (支持一天添加多场排球、多次爬坡及其他不同运动)
+    const todayWorkouts = ref([]);
+
     const todayVolleyball = ref({
-      enabled: true,
+      enabled: false,
       duration: 90,
       intensity: 'competitive',
       shoulderFatigue: 2,
@@ -344,11 +346,21 @@ const app = createApp({
     });
 
     const todayTreadmill = ref({
-      enabled: true,
+      enabled: false,
       duration: 15,
       incline: 8,
       speed: 4.0
     });
+
+    // 其他运动快捷预设库
+    const OTHER_WORKOUT_PRESETS = [
+      { key: 'running', title: '户外/跑步机慢跑', icon: '🏃', met: 8.5, duration: 30 },
+      { key: 'cycling', title: '动感单车 / 骑行', icon: '🚴', met: 7.0, duration: 30 },
+      { key: 'badminton', title: '羽毛球对抗', icon: '🏸', met: 6.0, duration: 60 },
+      { key: 'swimming', title: '游泳锻炼', icon: '🏊', met: 7.5, duration: 40 },
+      { key: 'stretching', title: '赛后拉伸 / 泡沫轴放松', icon: '🧘', met: 2.5, duration: 20 },
+      { key: 'custom', title: '自定义运动', icon: '⚡', met: 5.5, duration: 30 }
+    ];
 
     const todayExercises = ref([]);
 
@@ -455,37 +467,59 @@ const app = createApp({
     };
 
     // ================= 计算属性：实时能耗与训练量 =================
-    // 爬坡机卡路里
-    const treadmillCalories = computed(() => {
-      if (!todayTreadmill.value.enabled) return 0;
-      const res = CalorieCalculator.calculateInclineTreadmill(
-        userProfile.value.weight,
-        todayTreadmill.value.speed,
-        todayTreadmill.value.incline,
-        todayTreadmill.value.duration
-      );
-      return res.calories;
-    });
+    const calculateSingleWorkoutCalories = (w) => {
+      if (!w) return 0;
+      const weight = userProfile.value.weight || 78;
+      if (w.type === 'volleyball') {
+        return CalorieCalculator.calculateVolleyball(weight, w.intensity || 'competitive', Number(w.duration) || 0).calories;
+      } else if (w.type === 'treadmill') {
+        return CalorieCalculator.calculateInclineTreadmill(weight, Number(w.speed) || 4.5, Number(w.incline) || 10, Number(w.duration) || 0).calories;
+      } else {
+        const met = Number(w.met) || 5.5;
+        const dur = Number(w.duration) || 0;
+        return Math.round(met * weight * (dur / 60));
+      }
+    };
 
-    // 爬坡机 MET 与 Kcal/min 详情
-    const treadmillDetails = computed(() => {
+    const getWorkoutTreadmillDetails = (w) => {
       return CalorieCalculator.calculateInclineTreadmill(
         userProfile.value.weight,
-        todayTreadmill.value.speed,
-        todayTreadmill.value.incline,
-        todayTreadmill.value.duration
+        Number(w?.speed) || 4.5,
+        Number(w?.incline) || 10,
+        Number(w?.duration) || 0
+      );
+    };
+
+    // 爬坡机卡路里 (汇总今日所有爬坡记录)
+    const treadmillCalories = computed(() => {
+      return (todayWorkouts.value || [])
+        .filter(w => w.type === 'treadmill')
+        .reduce((sum, w) => sum + calculateSingleWorkoutCalories(w), 0);
+    });
+
+    // 爬坡机 MET 与 Kcal/min 详情 (兼容单条汇总)
+    const treadmillDetails = computed(() => {
+      const firstTm = (todayWorkouts.value || []).find(w => w.type === 'treadmill');
+      return CalorieCalculator.calculateInclineTreadmill(
+        userProfile.value.weight,
+        firstTm ? firstTm.speed : todayTreadmill.value.speed,
+        firstTm ? firstTm.incline : todayTreadmill.value.incline,
+        firstTm ? firstTm.duration : todayTreadmill.value.duration
       );
     });
 
-    // 排球实战卡路里
+    // 排球实战卡路里 (汇总今日所有排球场次)
     const volleyballCalories = computed(() => {
-      if (!todayVolleyball.value.enabled) return 0;
-      const res = CalorieCalculator.calculateVolleyball(
-        userProfile.value.weight,
-        todayVolleyball.value.intensity,
-        todayVolleyball.value.duration
-      );
-      return res.calories;
+      return (todayWorkouts.value || [])
+        .filter(w => w.type === 'volleyball')
+        .reduce((sum, w) => sum + calculateSingleWorkoutCalories(w), 0);
+    });
+
+    // 其他运动卡路里 (汇总今日所有非排球/非爬坡运动)
+    const otherWorkoutCalories = computed(() => {
+      return (todayWorkouts.value || [])
+        .filter(w => w.type === 'other')
+        .reduce((sum, w) => sum + calculateSingleWorkoutCalories(w), 0);
     });
 
     // 力量与弹跳动作卡路里与总搬运容积 (Volume)
@@ -514,7 +548,7 @@ const app = createApp({
 
     // 当前视图日期总能量消耗 (kcal)
     const todayTotalCalories = computed(() => {
-      return treadmillCalories.value + volleyballCalories.value + strengthStats.value.calories;
+      return treadmillCalories.value + volleyballCalories.value + otherWorkoutCalories.value + strengthStats.value.calories;
     });
 
     // 等价食物/补给提示
@@ -638,23 +672,146 @@ const app = createApp({
     });
 
     // ================= 多日期切换与同步 =================
+    const showOtherWorkoutPicker = ref(false);
+
+    // 将单条历史或旧版 plan 对象平滑迁移为多笔 workouts 数组
+    const migratePlanToWorkouts = (plan) => {
+      if (!plan) return [];
+      if (Array.isArray(plan.workouts)) {
+        return JSON.parse(JSON.stringify(plan.workouts));
+      }
+      const list = [];
+      if (plan.volleyball && plan.volleyball.enabled) {
+        list.push({
+          id: 'wo_vb_migrated_' + Math.random().toString(36).substr(2, 4),
+          type: 'volleyball',
+          timeSlot: '实战',
+          title: '排球实战对抗',
+          intensity: plan.volleyball.intensity || 'competitive',
+          duration: Number(plan.volleyball.duration) || 90,
+          shoulderFatigue: Number(plan.volleyball.shoulderFatigue) || 2,
+          kneeFatigue: Number(plan.volleyball.kneeFatigue) || 2,
+          notes: plan.volleyball.notes || ''
+        });
+      }
+      if (plan.treadmill && plan.treadmill.enabled) {
+        list.push({
+          id: 'wo_tm_migrated_' + Math.random().toString(36).substr(2, 4),
+          type: 'treadmill',
+          timeSlot: '有氧',
+          title: '跑步机坡度爬坡',
+          incline: Number(plan.treadmill.incline) || 10,
+          speed: Number(plan.treadmill.speed) || 4.5,
+          duration: Number(plan.treadmill.duration) || 20,
+          notes: ''
+        });
+      }
+      return list;
+    };
+
+    // 根据 workouts 聚合出兼容旧版结构汇总对象 (用于向后兼容历史统计与推荐器)
+    const summarizeWorkoutsForLegacy = (workoutsList) => {
+      const vbs = (workoutsList || []).filter(w => w.type === 'volleyball');
+      const tms = (workoutsList || []).filter(w => w.type === 'treadmill');
+      const aggVb = vbs.length > 0 ? {
+        enabled: true,
+        duration: vbs.reduce((s, w) => s + (Number(w.duration) || 0), 0),
+        intensity: vbs[vbs.length - 1].intensity || 'competitive',
+        shoulderFatigue: Math.max(...vbs.map(w => Number(w.shoulderFatigue) || 1)),
+        kneeFatigue: Math.max(...vbs.map(w => Number(w.kneeFatigue) || 1)),
+        notes: vbs.map(w => `${w.timeSlot ? w.timeSlot + ':' : ''}${w.duration}分`).join(' + ')
+      } : { enabled: false, duration: 90, intensity: 'competitive', shoulderFatigue: 2, kneeFatigue: 2, notes: '' };
+
+      const aggTm = tms.length > 0 ? {
+        enabled: true,
+        duration: tms.reduce((s, w) => s + (Number(w.duration) || 0), 0),
+        incline: tms[0].incline || 10,
+        speed: tms[0].speed || 4.5
+      } : { enabled: false, duration: 15, incline: 8, speed: 4.0 };
+
+      return { volleyball: aggVb, treadmill: aggTm };
+    };
+
+    const addWorkoutSession = (type, presetObj = null) => {
+      const id = 'wo_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4);
+      if (type === 'volleyball') {
+        const vbCount = todayWorkouts.value.filter(w => w.type === 'volleyball').length;
+        const defaultSlot = vbCount === 0 ? '下午场' : (vbCount === 1 ? '晚上场' : `第${vbCount + 1}场`);
+        todayWorkouts.value.push({
+          id,
+          type: 'volleyball',
+          timeSlot: defaultSlot,
+          title: `排球${defaultSlot}`,
+          intensity: 'competitive',
+          duration: 90,
+          shoulderFatigue: 2,
+          kneeFatigue: 2,
+          notes: ''
+        });
+        showToast(`🏐 已添加【${defaultSlot}】排球记录`);
+      } else if (type === 'treadmill') {
+        const tmCount = todayWorkouts.value.filter(w => w.type === 'treadmill').length;
+        const slot = tmCount === 0 ? '有氧' : `第${tmCount + 1}次爬坡`;
+        todayWorkouts.value.push({
+          id,
+          type: 'treadmill',
+          timeSlot: slot,
+          title: '健身房坡度爬坡',
+          incline: 10,
+          speed: 4.5,
+          duration: 20,
+          notes: ''
+        });
+        showToast('🧗 已添加一次坡度爬坡记录');
+      } else if (type === 'other') {
+        const p = presetObj || OTHER_WORKOUT_PRESETS[0];
+        todayWorkouts.value.push({
+          id,
+          type: 'other',
+          icon: p.icon || '⚡',
+          timeSlot: '加练',
+          title: p.title || '其他运动',
+          met: p.met || 5.5,
+          duration: p.duration || 30,
+          notes: ''
+        });
+        showOtherWorkoutPicker.value = false;
+        showToast(`${p.icon || '⚡'} 已添加【${p.title}】`);
+      }
+      syncCurrentFormToDict();
+      saveState();
+    };
+
+    const removeWorkoutSession = (idx) => {
+      const item = todayWorkouts.value[idx];
+      todayWorkouts.value.splice(idx, 1);
+      syncCurrentFormToDict();
+      saveState();
+      if (item) showToast(`已移除【${item.title || '运动记录'}】`);
+    };
+
     const syncCurrentFormToDict = () => {
+      const legacy = summarizeWorkoutsForLegacy(todayWorkouts.value);
+      todayVolleyball.value = legacy.volleyball;
+      todayTreadmill.value = legacy.treadmill;
       dailyPlans.value[activePlanDate.value] = {
-        volleyball: JSON.parse(JSON.stringify(todayVolleyball.value)),
-        treadmill: JSON.parse(JSON.stringify(todayTreadmill.value)),
+        workouts: JSON.parse(JSON.stringify(todayWorkouts.value)),
+        volleyball: JSON.parse(JSON.stringify(legacy.volleyball)),
+        treadmill: JSON.parse(JSON.stringify(legacy.treadmill)),
         exercises: JSON.parse(JSON.stringify(todayExercises.value))
       };
     };
 
     const loadPlanFromDict = (dateStr) => {
       let targetPlan = dailyPlans.value[dateStr];
-      // 关键修复：若当前日期没有记录或为空，且是今日(2026-11-24)或预排日，自动载入量身定制的排球实战前胸部推力与核心方案
-      if (!targetPlan || (!targetPlan.exercises?.length && !targetPlan.volleyball?.enabled)) {
+      // 关键修复：若当前日期没有记录或为空，且是今日或预排日，自动载入量身定制方案
+      if (!targetPlan || (!targetPlan.exercises?.length && !targetPlan.volleyball?.enabled && !targetPlan.workouts?.length)) {
         if (dateStr === todayDate.value || dateStr === '2026-11-24' || dateStr === tomorrowDate.value) {
           targetPlan = JSON.parse(JSON.stringify(TOMORROW_PRESET_PLAN));
           dailyPlans.value[dateStr] = targetPlan;
         } else {
           targetPlan = {
+            workouts: [],
             volleyball: { enabled: false, duration: 90, intensity: 'competitive', shoulderFatigue: 2, kneeFatigue: 2, notes: '' },
             treadmill: { enabled: false, duration: 20, incline: 10, speed: 4.5 },
             exercises: []
@@ -662,8 +819,10 @@ const app = createApp({
         }
       }
 
-      todayVolleyball.value = JSON.parse(JSON.stringify(targetPlan.volleyball || { enabled: false }));
-      todayTreadmill.value = JSON.parse(JSON.stringify(targetPlan.treadmill || { enabled: false }));
+      todayWorkouts.value = migratePlanToWorkouts(targetPlan);
+      const legacy = summarizeWorkoutsForLegacy(todayWorkouts.value);
+      todayVolleyball.value = legacy.volleyball;
+      todayTreadmill.value = legacy.treadmill;
       todayExercises.value = JSON.parse(JSON.stringify(targetPlan.exercises || []));
       loadMealsFromDict(dateStr);
     };
@@ -825,12 +984,15 @@ const app = createApp({
       };
     });
 
-    // 辅助：获取任意一天的训练数据（从 dailyPlans 或 historyLogs 或当前表单）
+    // 辅助：获取任意一天的训练数据（支持多笔 workouts、dailyPlans 与 historyLogs 向后兼容）
     const getDayWorkoutData = (dateStr) => {
       if (dateStr === activePlanDate.value) {
+        const legacy = summarizeWorkoutsForLegacy(todayWorkouts.value);
         return {
-          volleyball: todayVolleyball.value.enabled ? { ...todayVolleyball.value } : null,
-          treadmill: todayTreadmill.value.enabled ? { ...todayTreadmill.value } : null,
+          workouts: [...todayWorkouts.value],
+          volleyballCount: todayWorkouts.value.filter(w => w.type === 'volleyball').length,
+          volleyball: legacy.volleyball.enabled ? legacy.volleyball : null,
+          treadmill: legacy.treadmill.enabled ? legacy.treadmill : null,
           exercises: [...todayExercises.value],
           totalCalories: todayTotalCalories.value,
           totalVolume: strengthStats.value.volume
@@ -838,9 +1000,13 @@ const app = createApp({
       }
       const hist = historyLogs.value.find(l => l.date === dateStr);
       if (hist) {
+        const wList = migratePlanToWorkouts(hist);
+        const legacy = summarizeWorkoutsForLegacy(wList);
         return {
-          volleyball: hist.volleyball,
-          treadmill: hist.treadmill,
+          workouts: wList,
+          volleyballCount: wList.filter(w => w.type === 'volleyball').length,
+          volleyball: legacy.volleyball.enabled ? legacy.volleyball : hist.volleyball,
+          treadmill: legacy.treadmill.enabled ? legacy.treadmill : hist.treadmill,
           exercises: hist.exercises || [],
           totalCalories: hist.totalCalories || 0,
           totalVolume: hist.totalVolume || 0
@@ -848,28 +1014,31 @@ const app = createApp({
       }
       const plan = dailyPlans.value[dateStr];
       if (plan) {
+        const wList = migratePlanToWorkouts(plan);
+        const legacy = summarizeWorkoutsForLegacy(wList);
         let cal = 0;
         let vol = 0;
-        if (plan.volleyball && plan.volleyball.enabled) {
-          cal += CalorieCalculator.calculateVolleyball(userProfile.value.weight, plan.volleyball.intensity, plan.volleyball.duration).calories;
-        }
-        if (plan.treadmill && plan.treadmill.enabled) {
-          cal += CalorieCalculator.calculateInclineTreadmill(userProfile.value.weight, plan.treadmill.speed, plan.treadmill.incline, plan.treadmill.duration).calories;
-        }
+        wList.forEach(w => {
+          cal += calculateSingleWorkoutCalories(w);
+        });
         (plan.exercises || []).forEach(ex => {
           const res = CalorieCalculator.calculateStrengthExercise(userProfile.value.weight, ex, ex.sets || []);
           cal += res.calories;
           vol += res.totalVolume;
         });
         return {
-          volleyball: (plan.volleyball && plan.volleyball.enabled) ? plan.volleyball : null,
-          treadmill: (plan.treadmill && plan.treadmill.enabled) ? plan.treadmill : null,
+          workouts: wList,
+          volleyballCount: wList.filter(w => w.type === 'volleyball').length,
+          volleyball: legacy.volleyball.enabled ? legacy.volleyball : null,
+          treadmill: legacy.treadmill.enabled ? legacy.treadmill : null,
           exercises: plan.exercises || [],
           totalCalories: cal,
           totalVolume: vol
         };
       }
       return {
+        workouts: [],
+        volleyballCount: 0,
         volleyball: null,
         treadmill: null,
         exercises: [],
@@ -940,7 +1109,7 @@ const app = createApp({
           intake += Number(meal.calories) || 0;
         });
 
-        const hasData = (workout.totalCalories > 0 || workout.exercises.length > 0 || (workout.volleyball && workout.volleyball.enabled) || meals.length > 0 || dayWeight !== null);
+        const hasData = (workout.totalCalories > 0 || workout.exercises.length > 0 || (workout.workouts && workout.workouts.length > 0) || (workout.volleyball && workout.volleyball.enabled) || meals.length > 0 || dayWeight !== null);
         const deficitStats = hasData ? CalorieCalculator.calculateCalorieDeficit(dayBmr, workout.totalCalories, intake) : null;
 
         grid.push({
@@ -1307,10 +1476,23 @@ const app = createApp({
 
       const cardioItem = rec.exercises.find(e => e.isCardio);
       if (cardioItem) {
-        todayTreadmill.value.enabled = true;
-        todayTreadmill.value.duration = cardioItem.duration || 25;
-        todayTreadmill.value.incline = cardioItem.incline || 12;
-        todayTreadmill.value.speed = cardioItem.speed || 4.5;
+        const existingTm = todayWorkouts.value.find(w => w.type === 'treadmill');
+        if (existingTm) {
+          existingTm.duration = cardioItem.duration || 25;
+          existingTm.incline = cardioItem.incline || 12;
+          existingTm.speed = cardioItem.speed || 4.5;
+        } else {
+          todayWorkouts.value.push({
+            id: 'wo_rec_tm_' + Date.now(),
+            type: 'treadmill',
+            timeSlot: '有氧',
+            title: '健身房坡度爬坡',
+            duration: cardioItem.duration || 25,
+            incline: cardioItem.incline || 12,
+            speed: cardioItem.speed || 4.5,
+            notes: ''
+          });
+        }
       }
 
       rec.exercises.forEach(recItem => {
@@ -1352,9 +1534,10 @@ const app = createApp({
         return;
       }
 
-      if (todayVolleyball.value.enabled) {
-        fatigue.value.shoulder = todayVolleyball.value.shoulderFatigue;
-        fatigue.value.knee = todayVolleyball.value.kneeFatigue;
+      const legacy = summarizeWorkoutsForLegacy(todayWorkouts.value);
+      if (legacy.volleyball.enabled) {
+        fatigue.value.shoulder = legacy.volleyball.shoulderFatigue;
+        fatigue.value.knee = legacy.volleyball.kneeFatigue;
       }
 
       const logEntry = {
@@ -1364,8 +1547,9 @@ const app = createApp({
         totalCalories: todayTotalCalories.value,
         totalVolume: strengthStats.value.volume,
         fatigue: { ...fatigue.value },
-        volleyball: todayVolleyball.value.enabled ? { ...todayVolleyball.value } : null,
-        treadmill: todayTreadmill.value.enabled ? { ...todayTreadmill.value } : null,
+        workouts: JSON.parse(JSON.stringify(todayWorkouts.value)),
+        volleyball: legacy.volleyball.enabled ? { ...legacy.volleyball } : null,
+        treadmill: legacy.treadmill.enabled ? { ...legacy.treadmill } : null,
         exercises: JSON.parse(JSON.stringify(todayExercises.value))
       };
 
@@ -1383,6 +1567,7 @@ const app = createApp({
     const resetTodayPlan = () => {
       if (confirm(`确定要清空${planDateMode.value === 'tomorrow' ? '明日' : '今日'}的计划吗？`)) {
         todayExercises.value = [];
+        todayWorkouts.value = [];
         todayVolleyball.value.enabled = false;
         todayTreadmill.value.enabled = false;
         syncCurrentFormToDict();
@@ -1750,7 +1935,7 @@ const app = createApp({
       });
 
       if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('./sw.js?v=20261125_03').then(reg => {
+        navigator.serviceWorker.register('./sw.js?v=20261125_04').then(reg => {
           reg.update();
         }).catch(err => {
           console.log('SW registration note:', err);
@@ -1769,6 +1954,13 @@ const app = createApp({
       switchPlanDate,
       userProfile,
       fatigue,
+      todayWorkouts,
+      OTHER_WORKOUT_PRESETS,
+      showOtherWorkoutPicker,
+      addWorkoutSession,
+      removeWorkoutSession,
+      calculateSingleWorkoutCalories,
+      getWorkoutTreadmillDetails,
       todayVolleyball,
       todayTreadmill,
       todayExercises,
@@ -1843,6 +2035,7 @@ const app = createApp({
       treadmillCalories,
       treadmillDetails,
       volleyballCalories,
+      otherWorkoutCalories,
       strengthStats,
       todayTotalCalories,
       calorieEquivalents,
