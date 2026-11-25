@@ -430,6 +430,10 @@ const app = createApp({
     };
 
     const getIllustrationSvg = (exId) => {
+      if (typeof getExerciseIllustration === 'function') {
+        const illus = getExerciseIllustration(exId);
+        return illus ? illus.svg : '';
+      }
       if (typeof EXERCISE_ILLUSTRATIONS !== 'undefined' && EXERCISE_ILLUSTRATIONS[exId]) {
         return EXERCISE_ILLUSTRATIONS[exId].svg;
       }

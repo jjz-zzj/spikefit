@@ -1128,73 +1128,503 @@ ILLUSTRATIONS = {
   <text x="35" y="65" fill="#cbd5e1" font-size="10">背阔+转体核心鞭打</text>
   <text x="35" y="85" fill="#f59e0b" font-size="10">最高点击球包满球心</text>
 </svg>"""
-    }
-}
+    },
 
-# 辅助生成默认高品质示意图的兜底生成器（确保所有未单独声明的动作均有量身定制的高清矢量图）
-def get_diagram_for(ex_id, name, cat, eq, muscle, why):
-    if ex_id in ILLUSTRATIONS:
-        return ILLUSTRATIONS[ex_id]
-    
-    # 动态匹配优质通用模板
-    theme_color = "#00f59b"
-    if cat == 'volleyball_core':
-        theme_color = "#f97316"
-    elif cat == 'vertical_jump':
-        theme_color = "#00f59b"
-    elif cat == 'chest':
-        theme_color = "#38bdf8"
-    elif cat == 'back':
-        theme_color = "#10b981"
-    elif cat == 'legs':
-        theme_color = "#a855f7"
-    else:
-        theme_color = "#f59e0b"
-
-    svg = f"""<svg viewBox="0 0 400 240" xmlns="http://www.w3.org/2000/svg">
-  <defs>
-    <linearGradient id="bg_{ex_id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#0b1120"/><stop offset="100%" stop-color="#0f172a"/></linearGradient>
-    <filter id="glow_{ex_id}"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
-    <marker id="arrow_{ex_id}" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto"><path d="M0,6 L3,0 L6,6 Z" fill="{theme_color}"/></marker>
-  </defs>
-  <rect width="400" height="240" fill="url(#bg_{ex_id})"/>
-  <line x1="20" y1="200" x2="380" y2="200" stroke="#1e293b" stroke-width="2"/>
-  <!-- 运动姿态示意 -->
-  <circle cx="160" cy="70" r="14" fill="#cbd5e1"/>
-  <line x1="160" y1="84" x2="160" y2="140" stroke="#94a3b8" stroke-width="16" stroke-linecap="round"/>
-  <!-- 目标发力肌群高亮 -->
-  <ellipse cx="160" cy="110" rx="16" ry="14" fill="{theme_color}" opacity="0.9" filter="url(#glow_{ex_id})"/>
-  <!-- 肢体关节与器械 -->
-  <polyline points="160,95 130,110 115,95" fill="none" stroke="#e2e8f0" stroke-width="6" stroke-linecap="round"/>
-  <polyline points="160,95 190,110 205,95" fill="none" stroke="#e2e8f0" stroke-width="6" stroke-linecap="round"/>
-  <polyline points="155,140 145,170 140,200" fill="none" stroke="#64748b" stroke-width="7" stroke-linecap="round"/>
-  <polyline points="165,140 175,170 180,200" fill="none" stroke="#64748b" stroke-width="7" stroke-linecap="round"/>
-  <!-- 发力方向指示 -->
-  <line x1="160" y1="160" x2="160" y2="120" stroke="{theme_color}" stroke-width="3" marker-end="url(#arrow_{ex_id})"/>
-  <text x="210" y="75" fill="{theme_color}" font-size="13" font-weight="black">{name}</text>
-  <text x="210" y="98" fill="#cbd5e1" font-size="11">目标: {muscle}</text>
-  <text x="210" y="118" fill="#94a3b8" font-size="10">器械: {eq}</text>
-  <text x="210" y="138" fill="#f59e0b" font-size="10">🏐 排球核心价值强化</text>
-</svg>"""
-
-    return {
-        "title": name,
-        "equipment": eq,
-        "target": muscle,
-        "volleyballFocus": why,
-        "breathing": "发力向心做功时有力呼气，还原离心控制时深吸气。",
+    # 25. 靠墙静蹲 / 西班牙深蹲等长收缩
+    "wall_sit_isometric": {
+        "title": "靠墙静蹲/西班牙深蹲等长收缩 (Wall Sit Isometric)",
+        "equipment": "垂直墙面 / 环状弹力带(西班牙深蹲)",
+        "target": "股四头肌等长收缩、髌腱张力调控",
+        "volleyballFocus": "【排球髌腱赛前镇痛金标准】45秒等长收缩触发中枢镇痛机制，赛前压制跳跃膝疼痛且零摩擦",
+        "breathing": "保持匀速深沉的鼻吸口呼节奏，严禁憋气导致血压飙升。",
         "steps": [
-            f"做好准备姿势，收紧核心肌群，将{eq}调整至合适初始位置。",
-            f"保持目标肌群（{muscle}）处于主导发力状态，平稳启动动作行程。",
-            "在动作顶峰阶段保持 1 秒肌肉顶峰收缩，感受深层神经募集。",
-            "用 2-3 秒匀速离心控制回放至初始准备位，维持肌肉张力不完全松懈。"
+            "背部、臀部与后脑勺紧贴垂直墙面站立，双脚向前迈出约一大步，与肩同宽。",
+            "沿墙面缓缓滑下，直至大腿与地面接近平行（膝盖屈曲约 80°-90°），小腿尽量垂直地面。",
+            "【护膝关键】：确保双膝正对第二脚趾方向，坚决不内扣，重心均匀压在全脚掌。",
+            "保持该静态角度稳定 45 秒（感受股四头肌与髌腱微酸发暖但膝盖不尖锐刺痛）。"
         ],
         "mistakes": [
-            "使用过大重量导致动作变形或过度依赖其他肌群借力。",
-            "忽视离心下放过程，快速自由落体容易拉伤关节韧带。"
+            "脚跟离地或膝盖大幅度前顶超过脚尖，增加髌股关节压力。",
+            "膝盖向内夹紧（X型腿内扣）或双手撑在膝盖上借力偷懒。"
         ],
-        "svg": svg
+        "svg": """<svg viewBox="0 0 400 240" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bgWall" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#0b1120"/><stop offset="100%" stop-color="#0f172a"/></linearGradient>
+    <filter id="glowWall"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  </defs>
+  <rect width="400" height="240" fill="url(#bgWall)"/>
+  <line x1="20" y1="205" x2="380" y2="205" stroke="#1e293b" stroke-width="2"/>
+  <!-- 垂直墙面 -->
+  <rect x="75" y="30" width="16" height="175" rx="2" fill="#334155"/>
+  <line x1="91" y1="30" x2="91" y2="205" stroke="#475569" stroke-width="2"/>
+  <!-- 靠墙静蹲人物：背部贴墙，大小腿呈90度 -->
+  <circle cx="107" cy="65" r="12" fill="#cbd5e1"/>
+  <line x1="103" y1="77" x2="103" y2="135" stroke="#94a3b8" stroke-width="15" stroke-linecap="round"/>
+  <!-- 大腿水平高亮 (股四头肌等长发力) -->
+  <line x1="103" y1="135" x2="168" y2="135" stroke="#00f59b" stroke-width="13" stroke-linecap="round" filter="url(#glowWall)"/>
+  <!-- 小腿垂直地面 -->
+  <line x1="168" y1="135" x2="168" y2="198" stroke="#64748b" stroke-width="9" stroke-linecap="round"/>
+  <line x1="168" y1="198" x2="190" y2="202" stroke="#cbd5e1" stroke-width="7" stroke-linecap="round"/>
+  <!-- 髌腱镇痛保护光环 -->
+  <circle cx="171" cy="138" r="10" fill="none" stroke="#38bdf8" stroke-width="2.5" stroke-dasharray="3,2"/>
+  <!-- 90度直角标尺 -->
+  <polyline points="154,135 154,149 168,149" fill="none" stroke="#f59e0b" stroke-width="2"/>
+  <text x="132" y="162" fill="#f59e0b" font-size="10" font-weight="bold">80°-90°</text>
+  <!-- 双臂前平举/贴体侧 -->
+  <line x1="105" y1="92" x2="145" y2="115" stroke="#e2e8f0" stroke-width="5" stroke-linecap="round"/>
+  <!-- 标注 -->
+  <text x="210" y="65" fill="#00f59b" font-size="12" font-weight="black">等长镇痛护膝 (45s)</text>
+  <text x="210" y="85" fill="#cbd5e1" font-size="10">大小腿呈 90° · 零关节摩擦</text>
+  <text x="210" y="105" fill="#38bdf8" font-size="10">背部紧贴墙面 · 重心踩实全掌</text>
+  <text x="210" y="125" fill="#f59e0b" font-size="10">★ 排球赛前跳跃膝急救首选</text>
+</svg>"""
+    },
+
+    # 26. 弹力带怪兽侧步走 (Monster Walk)
+    "miniband_lateral_walk": {
+        "title": "弹力带怪兽侧步走 (Miniband Lateral Walk)",
+        "equipment": "环状迷你弹力带",
+        "target": "臀中肌、臀小肌、髋外展稳定肌群",
+        "volleyballFocus": "【锁死膝盖防内扣】强化髋外展刚度，防止助跑急停和单脚落地膝内扣扭伤韧带",
+        "breathing": "保持均匀呼吸，每侧跨步时保持核心腹压稳定。",
+        "steps": [
+            "将迷你弹力带套在双膝上方约 5cm 处（或脚踝处加大难度），双脚与肩同宽。",
+            "臀部微向后坐进入约 1/4 半蹲运动预备姿，抬头挺胸，核心收紧。",
+            "向外侧主动迈出一脚（保持弹力带始终有拉紧张力），另一脚受控跟进半步而不完全并拢。",
+            "向左侧横移 12 步后，再向右侧横移 12 步，全程保持双膝向外微顶撑开。"
+        ],
+        "mistakes": [
+            "迈步时上身左右剧烈摇晃借力，失去了臀中肌的孤立抗阻刺激。",
+            "跟随腿回收太快导致弹力带松弛失去张力，或膝盖随阻力向内塌陷。"
+        ],
+        "svg": """<svg viewBox="0 0 400 240" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bgWalk" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#0b1120"/><stop offset="100%" stop-color="#0f172a"/></linearGradient>
+    <filter id="glowWalk"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    <marker id="arrowSide" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#00f59b"/></marker>
+  </defs>
+  <rect width="400" height="240" fill="url(#bgWalk)"/>
+  <line x1="20" y1="205" x2="380" y2="205" stroke="#1e293b" stroke-width="2"/>
+  <!-- 正面半蹲人物 -->
+  <circle cx="160" cy="60" r="12" fill="#cbd5e1"/>
+  <path d="M 145,74 L 175,74 L 178,125 L 142,125 Z" fill="#94a3b8"/>
+  <!-- 双侧臀中肌高亮发光 -->
+  <ellipse cx="138" cy="122" rx="10" ry="12" fill="#00f59b" opacity="0.9" filter="url(#glowWalk)"/>
+  <ellipse cx="182" cy="122" rx="10" ry="12" fill="#00f59b" opacity="0.9" filter="url(#glowWalk)"/>
+  <!-- 微屈大腿与向外跨步小腿 -->
+  <polyline points="145,125 125,158 115,200" fill="none" stroke="#64748b" stroke-width="8" stroke-linecap="round"/>
+  <polyline points="175,125 198,158 210,200" fill="none" stroke="#64748b" stroke-width="8" stroke-linecap="round"/>
+  <!-- 膝盖上方橙色弹力带 -->
+  <rect x="122" y="148" width="78" height="9" rx="4" fill="#f97316" stroke="#fed7aa" stroke-width="1"/>
+  <!-- 侧向跨步动态箭头 -->
+  <line x1="220" y1="185" x2="265" y2="185" stroke="#00f59b" stroke-width="3" marker-end="url(#arrowSide)"/>
+  <line x1="100" y1="185" x2="65" y2="185" stroke="#38bdf8" stroke-width="2.5" stroke-dasharray="3,2"/>
+  <!-- 手部叉腰稳定 -->
+  <polyline points="145,82 130,105 142,118" fill="none" stroke="#e2e8f0" stroke-width="4" stroke-linecap="round"/>
+  <polyline points="175,82 190,105 178,118" fill="none" stroke="#e2e8f0" stroke-width="4" stroke-linecap="round"/>
+  <text x="235" y="75" fill="#00f59b" font-size="12" font-weight="black">臀中肌锁死膝盖对线</text>
+  <text x="235" y="95" fill="#cbd5e1" font-size="10">半蹲微屈髋 · 侧向横移</text>
+  <text x="235" y="115" fill="#f97316" font-size="10">弹力带全程绷紧撑开膝盖</text>
+</svg>"""
+    },
+
+    # 27. 俯卧/俯身 Y-T-W 肩胛与肩袖激活
+    "prone_ytw_raises": {
+        "title": "俯卧/俯身 Y-T-W 肩袖激活 (Prone Y-T-W Raises)",
+        "equipment": "瑜伽垫 / 1-2kg 极轻哑铃或徒手",
+        "target": "下斜方肌、菱形肌、肩袖外旋肌群",
+        "volleyballFocus": "【避开背阔肌，精雕肩袖微稳定】只动员深层护肩小肌群，赛前让扣球手臂润滑顺畅",
+        "breathing": "手臂抬起夹紧肩胛骨时吐气，缓慢放下时吸气。",
+        "steps": [
+            "俯卧在垫面或俯身折髋约 45°，双手空握或持 1kg 极轻哑铃，大拇指全程朝上。",
+            "【Y 字上举】：双臂向斜上方 135° 呈 Y 形抬起，下压肩胛骨，停顿 1 秒。",
+            "【T 字平展】：双臂向正两侧 90° 呈 T 形抬起，挤压后背菱形肌，停顿 1 秒。",
+            "【W 字夹臂】：屈肘呈 W 形向后上方外旋抬起，充分激活肩袖后束。"
+        ],
+        "mistakes": [
+            "使用过重哑铃导致上斜方肌耸肩代偿、脖子僵硬。",
+            "快速上下甩动，没有在最高点做出肩胛骨后缩停顿。"
+        ],
+        "svg": """<svg viewBox="0 0 400 240" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bgYtw" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#0b1120"/><stop offset="100%" stop-color="#0f172a"/></linearGradient>
+    <filter id="glowYtw"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  </defs>
+  <rect width="400" height="240" fill="url(#bgYtw)"/>
+  <!-- 俯视双肩肩胛骨示意 -->
+  <circle cx="150" cy="70" r="12" fill="#cbd5e1"/>
+  <path d="M 130,86 L 170,86 L 164,165 L 136,165 Z" fill="#94a3b8"/>
+  <!-- 中下斜方肌与肩袖高亮 (倒三角微稳定区) -->
+  <polygon points="136,88 164,88 150,128" fill="#00f59b" opacity="0.9" filter="url(#glowYtw)"/>
+  <!-- Y 字方向虚线臂 -->
+  <line x1="133" y1="90" x2="95" y2="45" stroke="#38bdf8" stroke-width="4" stroke-dasharray="4,2" stroke-linecap="round"/>
+  <line x1="167" y1="90" x2="205" y2="45" stroke="#38bdf8" stroke-width="4" stroke-dasharray="4,2" stroke-linecap="round"/>
+  <text x="82" y="38" fill="#38bdf8" font-size="13" font-weight="black">Y</text>
+  <text x="208" y="38" fill="#38bdf8" font-size="13" font-weight="black">Y</text>
+  <!-- T 字方向实线臂 -->
+  <line x1="133" y1="92" x2="80" y2="92" stroke="#00f59b" stroke-width="5" stroke-linecap="round"/>
+  <line x1="167" y1="92" x2="220" y2="92" stroke="#00f59b" stroke-width="5" stroke-linecap="round"/>
+  <text x="64" y="96" fill="#00f59b" font-size="13" font-weight="black">T</text>
+  <text x="225" y="96" fill="#00f59b" font-size="13" font-weight="black">T</text>
+  <!-- W 字屈肘臂 -->
+  <polyline points="133,96 105,120 90,102" fill="none" stroke="#f59e0b" stroke-width="4" stroke-linecap="round"/>
+  <polyline points="167,96 195,120 210,102" fill="none" stroke="#f59e0b" stroke-width="4" stroke-linecap="round"/>
+  <text x="74" y="106" fill="#f59e0b" font-size="13" font-weight="black">W</text>
+  <text x="215" y="106" fill="#f59e0b" font-size="13" font-weight="black">W</text>
+  <!-- 说明 -->
+  <text x="248" y="65" fill="#00f59b" font-size="12" font-weight="black">肩袖微稳定激活</text>
+  <text x="248" y="88" fill="#cbd5e1" font-size="10">大拇指朝上 · 沉肩夹背</text>
+  <text x="248" y="108" fill="#38bdf8" font-size="10">极轻 1kg 或徒手(不力竭)</text>
+  <text x="248" y="128" fill="#f59e0b" font-size="10">零背阔疲劳 · 赛前护肩必备</text>
+</svg>"""
+    },
+
+    # 28. 轻量单腿罗马尼亚硬拉 (Single-Leg RDL)
+    "single_leg_rdl": {
+        "title": "轻量单腿罗马尼亚硬拉 (Single-Leg RDL)",
+        "equipment": "自重 / 4-6kg 轻哑铃",
+        "target": "单侧臀大肌、腘绳肌、足踝本体感觉平衡",
+        "volleyballFocus": "【单脚落地吸震本能】唤醒单侧臀后链与脚踝微调神经，防止扣球落地重心失衡砸伤右膝",
+        "breathing": "屈髋俯身下放时深吸气，臀大肌发力拉直回位时呼气。",
+        "steps": [
+            "单脚稳固站立，支撑腿膝关节保持微屈（约 15°）且全程锁定角度。",
+            "收紧核心与骨盆保持水平（切忌骨盆向悬空侧翻转），后抬腿向后蹬伸。",
+            "以髋关节为铰链，让上身与后摆腿如跷跷板般呈一条直线俯身至接近水平 T 字。",
+            "感受支撑侧大腿后侧与臀部的强烈拉伸后，发力将髋部向前顶回直立姿。"
+        ],
+        "mistakes": [
+            "骨盆旋转掀翻（像翻身一样把悬空侧髋部抬高），失去了稳定训练意义。",
+            "弯腰驼背代替折叠髋关节，导致腰椎代偿受力。"
+        ],
+        "svg": """<svg viewBox="0 0 400 240" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bgSlRdl" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#0b1120"/><stop offset="100%" stop-color="#0f172a"/></linearGradient>
+    <filter id="glowSlRdl"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  </defs>
+  <rect width="400" height="240" fill="url(#bgSlRdl)"/>
+  <line x1="20" y1="205" x2="380" y2="205" stroke="#1e293b" stroke-width="2"/>
+  <!-- T 字平衡水平基准虚线 -->
+  <line x1="70" y1="95" x2="290" y2="95" stroke="#38bdf8" stroke-width="1.5" stroke-dasharray="4,3"/>
+  <!-- 躯干与后摆腿形成水平一条直线 -->
+  <circle cx="255" cy="92" r="12" fill="#cbd5e1"/>
+  <line x1="243" y1="95" x2="170" y2="95" stroke="#94a3b8" stroke-width="15" stroke-linecap="round"/>
+  <line x1="170" y1="95" x2="90" y2="90" stroke="#64748b" stroke-width="9" stroke-linecap="round"/>
+  <!-- 支撑腿臀大肌与腘绳肌高亮 -->
+  <ellipse cx="170" cy="100" rx="14" ry="11" fill="#00f59b" opacity="0.9" filter="url(#glowSlRdl)"/>
+  <polyline points="170,100 176,148 172,202" fill="none" stroke="#00f59b" stroke-width="8" stroke-linecap="round" filter="url(#glowSlRdl)"/>
+  <!-- 手持轻哑铃垂直下垂 -->
+  <line x1="225" y1="98" x2="225" y2="145" stroke="#e2e8f0" stroke-width="5" stroke-linecap="round"/>
+  <rect x="214" y="143" width="22" height="10" rx="3" fill="#f59e0b"/>
+  <!-- 标注 -->
+  <text x="45" y="50" fill="#00f59b" font-size="12" font-weight="black">水平 T 字单腿屈髋平衡</text>
+  <text x="45" y="70" fill="#cbd5e1" font-size="10">骨盆水平不翻转 · 臀大肌后链吸震</text>
+  <text x="235" y="185" fill="#f59e0b" font-size="10">轻负重(4-6kg)或徒手</text>
+</svg>"""
+    },
+
+    # 29. 仰卧死虫子核心激活 (Deadbug)
+    "deadbug_core": {
+        "title": "仰卧死虫子核心激活 (Deadbug)",
+        "equipment": "瑜伽垫 / 自重",
+        "target": "腹横肌、深层核心稳定肌群",
+        "volleyballFocus": "【空中抗折腰刚度】深度激活腹横肌，扣球空中拉弓发力时保护腰椎并锁紧躯干能量传递",
+        "breathing": "对角手脚伸展下放时缓慢鼻吸气维持腹压，拉回时口呼气收紧肋骨。",
+        "steps": [
+            "仰卧平躺于瑜伽垫，双手臂垂直天花板伸直，双腿屈髋屈膝各呈 90° 抬起（桌腿姿）。",
+            "【核心锁止铁律】：深呼一口气将肋骨下压，使下背部与地面之间的缝隙完全压死贴实。",
+            "保持下背紧贴垫面绝对不起翘，缓慢将左手向头顶上方伸展，同时右腿向前下方缓慢伸直。",
+            "在手脚接近地面（不触地）处停留 1 秒后受控拉回，换另一侧对角手脚交替进行。"
+        ],
+        "mistakes": [
+            "腿下放时下腰部大幅度向上反弓腾空，会导致髂腰肌和腰椎直接代偿酸痛。",
+            "手脚同时同侧伸展或动作过快甩动。"
+        ],
+        "svg": """<svg viewBox="0 0 400 240" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bgBug" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#0b1120"/><stop offset="100%" stop-color="#0f172a"/></linearGradient>
+    <filter id="glowBug"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  </defs>
+  <rect width="400" height="240" fill="url(#bgBug)"/>
+  <!-- 瑜伽垫地面 -->
+  <rect x="40" y="185" width="320" height="8" rx="3" fill="#334155"/>
+  <!-- 仰卧躯干 -->
+  <circle cx="115" cy="168" r="12" fill="#cbd5e1"/>
+  <line x1="128" y1="173" x2="215" y2="173" stroke="#94a3b8" stroke-width="15" stroke-linecap="round"/>
+  <!-- 腹横肌深层高亮 + 下背贴地红/橙锁止区 -->
+  <ellipse cx="172" cy="170" rx="22" ry="9" fill="#00f59b" opacity="0.9" filter="url(#glowBug)"/>
+  <line x1="150" y1="184" x2="195" y2="184" stroke="#f97316" stroke-width="4"/>
+  <!-- 固定垂直手臂与悬空90度腿 -->
+  <line x1="140" y1="168" x2="140" y2="105" stroke="#e2e8f0" stroke-width="5" stroke-linecap="round"/>
+  <polyline points="215,170 215,125 255,125" fill="none" stroke="#64748b" stroke-width="7" stroke-linecap="round"/>
+  <!-- 对角伸展手脚 (虚线延伸) -->
+  <line x1="138" y1="168" x2="72" y2="162" stroke="#38bdf8" stroke-width="4" stroke-dasharray="4,2" stroke-linecap="round"/>
+  <line x1="215" y1="172" x2="300" y2="174" stroke="#38bdf8" stroke-width="6" stroke-dasharray="4,2" stroke-linecap="round"/>
+  <text x="140" y="205" fill="#f97316" font-size="11" font-weight="bold">▲ 下腰全程死贴垫面 (不可拱腰)</text>
+  <text x="210" y="55" fill="#00f59b" font-size="12" font-weight="black">对角缓慢伸展抗过伸</text>
+  <text x="210" y="75" fill="#cbd5e1" font-size="10">深度唤醒腹横肌核心刚度</text>
+</svg>"""
+    },
+
+    # 30. 单杠悬垂收腹转体 (补全手绘精图)
+    "hanging_knee_twist": {
+        "title": "单杠悬垂收腹转体 (Hanging Knee Twist)",
+        "equipment": "龙门架单杠 / 引体架",
+        "target": "腹直肌下束、腹内外斜肌、转髋肌群",
+        "volleyballFocus": "脱离地面支撑，训练滞空状态下转髋折叠并快速收腹扣球的复合力量",
+        "breathing": "悬垂准备时吸气，向上收膝转体卷腹时强力吐气。",
+        "steps": [
+            "双手正握单杠（略宽于肩），沉肩拉长脊柱使身体垂直稳固悬垂不晃荡。",
+            "骨盆后倾发力启动，将双膝并拢向上抬起并向左侧斜上方旋转挤压胸前。",
+            "感受左侧腹斜肌与下腹充分拧紧收缩，顶峰停顿 0.5 秒。",
+            "控制速度缓慢下放复原至悬垂，再转向右侧，全程不借助甩腿惯性。"
+        ],
+        "mistakes": [
+            "像荡秋千一样利用惯性前后狂甩腿部，变成单纯的髂腰肌摆动。",
+            "只抬膝盖而骨盆不向内向上卷曲，下腹肌几乎不怎么发力。"
+        ],
+        "svg": """<svg viewBox="0 0 400 240" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bgHang" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#0b1120"/><stop offset="100%" stop-color="#0f172a"/></linearGradient>
+    <filter id="glowHang"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    <marker id="arrowHang" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto"><path d="M0,6 L3,0 L6,6 Z" fill="#00f59b"/></marker>
+  </defs>
+  <rect width="400" height="240" fill="url(#bgHang)"/>
+  <line x1="60" y1="35" x2="340" y2="35" stroke="#cbd5e1" stroke-width="6" stroke-linecap="round"/>
+  <!-- 双臂悬垂 -->
+  <line x1="150" y1="38" x2="165" y2="85" stroke="#e2e8f0" stroke-width="5" stroke-linecap="round"/>
+  <line x1="210" y1="38" x2="195" y2="85" stroke="#e2e8f0" stroke-width="5" stroke-linecap="round"/>
+  <circle cx="180" cy="65" r="12" fill="#cbd5e1"/>
+  <line x1="180" y1="82" x2="180" y2="135" stroke="#94a3b8" stroke-width="15" stroke-linecap="round"/>
+  <!-- 腹斜肌与下腹高亮 -->
+  <ellipse cx="176" cy="122" rx="13" ry="15" fill="#00f59b" opacity="0.9" filter="url(#glowHang)"/>
+  <!-- 双膝斜向收腹抬起 -->
+  <polyline points="180,135 142,115 135,148" fill="none" stroke="#64748b" stroke-width="8" stroke-linecap="round"/>
+  <!-- 旋转向上箭头 -->
+  <path d="M 180,180 Q 130,175 135,128" fill="none" stroke="#00f59b" stroke-width="3" stroke-dasharray="4,2" marker-end="url(#arrowHang)"/>
+  <text x="230" y="85" fill="#00f59b" font-size="12" font-weight="black">骨盆后倾 + 斜向转髋</text>
+  <text x="230" y="105" fill="#cbd5e1" font-size="10">悬垂脊柱减压 · 控速不摆荡</text>
+  <text x="230" y="125" fill="#f59e0b" font-size="10">模拟滞空收腹扣杀折叠</text>
+</svg>"""
+    },
+
+    # 31. 弹力带/绳索爆发转体冲拳 (补全手绘精图)
+    "band_rotational_punch": {
+        "title": "弹力带/绳索爆发转体冲拳 (Rotational Punch)",
+        "equipment": "龙门架绳索 / 高弹力弹力带",
+        "target": "腹斜肌、下肢转髋链、三角肌前束、胸大肌",
+        "volleyballFocus": "打通脚掌蹬地->转髋->转躯干->手臂出拳的动力链，直接提升扣球挥臂出球初速度",
+        "breathing": "蓄力拉弓时吸气，转髋暴发冲拳瞬间短促爆破吐气。",
+        "steps": [
+            "背对龙门架或弹力带锚点，呈前后弓步站立，单手握把手置于右肩前方蓄力。",
+            "重心微压向后脚，微微向后旋髋蓄满弹性势能。",
+            "【动能链传导】：后脚脚掌快速旋内蹬地 -> 髋部猛然转向正前方 -> 带动胸廓旋转。",
+            "顺着躯干扭转的鞭打惯性，单臂暴发性向前上方直拳推出，控制速率匀速拉回。"
+        ],
+        "mistakes": [
+            "单纯靠手臂往前推（没有后脚蹬地和转髋，完全丢失动力链发力精髓）。",
+            "冲拳终点时上身前扑失去平衡。"
+        ],
+        "svg": """<svg viewBox="0 0 400 240" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bgPunch" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#0b1120"/><stop offset="100%" stop-color="#0f172a"/></linearGradient>
+    <filter id="glowPunch"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    <marker id="arrowPunch" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#00f59b"/></marker>
+  </defs>
+  <rect width="400" height="240" fill="url(#bgPunch)"/>
+  <line x1="20" y1="205" x2="380" y2="205" stroke="#1e293b" stroke-width="2"/>
+  <rect x="45" y="45" width="12" height="160" fill="#334155"/>
+  <circle cx="51" cy="115" r="7" fill="#64748b"/>
+  <!-- 弓步旋转人物 -->
+  <circle cx="170" cy="70" r="12" fill="#cbd5e1"/>
+  <line x1="170" y1="82" x2="165" y2="140" stroke="#94a3b8" stroke-width="15" stroke-linecap="round"/>
+  <!-- 腹斜肌发力旋转链高亮 -->
+  <ellipse cx="168" cy="115" rx="14" ry="12" fill="#00f59b" opacity="0.9" filter="url(#glowPunch)"/>
+  <polyline points="165,140 135,170 115,202" fill="none" stroke="#64748b" stroke-width="7" stroke-linecap="round"/>
+  <polyline points="165,140 198,168 215,202" fill="none" stroke="#64748b" stroke-width="7" stroke-linecap="round"/>
+  <!-- 绳索与爆发冲拳 -->
+  <line x1="57" y1="115" x2="245" y2="95" stroke="#f59e0b" stroke-width="2.5" stroke-dasharray="4,2"/>
+  <line x1="172" y1="95" x2="245" y2="95" stroke="#ffffff" stroke-width="6" stroke-linecap="round"/>
+  <circle cx="248" cy="95" r="6" fill="#00f59b"/>
+  <!-- 传导箭头 -->
+  <line x1="200" y1="80" x2="265" y2="80" stroke="#00f59b" stroke-width="3" marker-end="url(#arrowPunch)"/>
+  <text x="200" y="55" fill="#00f59b" font-size="12" font-weight="black">蹬地 → 转髋 → 鞭打冲拳</text>
+  <text x="200" y="135" fill="#cbd5e1" font-size="10">模拟扣球瞬间全身动力链爆发</text>
+</svg>"""
+    },
+
+    # 32. 杠铃推腹抗伸展 (补全手绘精图)
+    "barbell_rollout": {
+        "title": "杠铃推腹抗伸展 (Barbell Rollout)",
+        "equipment": "杠铃杆 + 轻片 / 健腹轮",
+        "target": "腹直肌全段、背阔肌、深层脊柱保护肌",
+        "volleyballFocus": "强化扣球空中大幅度挺胸拉弓后防止腰椎过伸拉伤的绝对核心刹车力量",
+        "breathing": "向前滚动展开时深吸气紧绷核心，拉回时大力呼气收腹。",
+        "steps": [
+            "双膝跪在瑜伽垫上，双手略宽于肩抓握装有圆片（可滚动）的杠铃杆，双臂垂直地面。",
+            "臀部微夹紧、微微含胸拱背（骨盆后倾锁紧腰椎）。",
+            "核心死死锁住腰部防下塌，双臂保持伸直顺势向前缓慢推滚杠铃至身体近似水平。",
+            "在远端极限处保持 0.5 秒抗伸展张力，随后用腹直肌下拉感将杠铃拉回初始位。"
+        ],
+        "mistakes": [
+            "向前推时屁股塌下去出现明显反弓（极易闪腰伤腰椎间盘）。",
+            "拉回时先向后撅屁股坐回脚后跟偷懒，腹肌未完全吃力。"
+        ],
+        "svg": """<svg viewBox="0 0 400 240" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bgRoll" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#0b1120"/><stop offset="100%" stop-color="#0f172a"/></linearGradient>
+    <filter id="glowRoll"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    <marker id="arrowRoll" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#00f59b"/></marker>
+  </defs>
+  <rect width="400" height="240" fill="url(#bgRoll)"/>
+  <line x1="20" y1="200" x2="380" y2="200" stroke="#1e293b" stroke-width="2"/>
+  <rect x="60" y="192" width="110" height="8" rx="3" fill="#334155"/>
+  <!-- 跪姿向前展开躯干 -->
+  <polyline points="80,192 105,192 115,155" fill="none" stroke="#64748b" stroke-width="8" stroke-linecap="round"/>
+  <line x1="115" y1="155" x2="210" y2="132" stroke="#94a3b8" stroke-width="15" stroke-linecap="round"/>
+  <circle cx="222" cy="126" r="11" fill="#cbd5e1"/>
+  <!-- 腹直肌防塌腰高亮 -->
+  <ellipse cx="165" cy="148" rx="22" ry="9" transform="rotate(-14 165 148)" fill="#00f59b" opacity="0.9" filter="url(#glowRoll)"/>
+  <!-- 手臂推滚杠铃 -->
+  <line x1="205" y1="134" x2="275" y2="178" stroke="#e2e8f0" stroke-width="5" stroke-linecap="round"/>
+  <circle cx="275" cy="178" r="22" fill="#1e293b" stroke="#ef4444" stroke-width="4"/>
+  <circle cx="275" cy="178" r="6" fill="#cbd5e1"/>
+  <!-- 前后滚箭头 -->
+  <line x1="230" y1="192" x2="315" y2="192" stroke="#00f59b" stroke-width="2.5" stroke-dasharray="4,2" marker-end="url(#arrowRoll)"/>
+  <text x="65" y="65" fill="#00f59b" font-size="12" font-weight="black">锁紧骨盆后倾 · 坚决不塌腰</text>
+  <text x="65" y="85" fill="#cbd5e1" font-size="10">打造扣球拉弓后的核心抗过伸护甲</text>
+</svg>"""
+    },
+
+    # 33. 单腿着地制动缓冲 (Drop & Freeze 补全手绘精图)
+    "single_leg_drop_freeze": {
+        "title": "单腿着地制动缓冲 (Drop & Freeze)",
+        "equipment": "低矮台阶 / 踏板 (20-35cm)",
+        "target": "臀中肌、股四头肌离心制动、膝关节稳固对线",
+        "volleyballFocus": "【防前交叉韧带撕裂神技】专治排球拦网或救球单脚落地晃动、膝内扣扭伤",
+        "breathing": "迈下瞬间吸气核心绷紧，落地瞬间稳定呼气冻结姿势。",
+        "steps": [
+            "站在 20-30cm 低台阶上，单脚向前悬空准备迈下（严禁向上跳起）。",
+            "身体自然受控下落，先用前脚掌轻柔触地后立刻过渡到全脚掌踩实。",
+            "【落地冻结铁律】：落地瞬间立即屈髋向后坐、微屈膝缓冲，像雕塑一样静止凝固 2 秒！",
+            "检查落地瞬间膝盖必须笔直对准第二脚趾，坚决不往内侧抖动歪斜。"
+        ],
+        "mistakes": [
+            "像木头一样直腿砸向地面（无屈髋屈膝吸震缓冲）。",
+            "落地瞬间膝盖明显往里扣入（Knee Valgus，十字韧带极其危险信号）。"
+        ],
+        "svg": """<svg viewBox="0 0 400 240" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bgDrop" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#0b1120"/><stop offset="100%" stop-color="#0f172a"/></linearGradient>
+    <filter id="glowDrop"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    <marker id="arrowDrop" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto"><path d="M0,6 L3,0 L6,6 Z" fill="#38bdf8"/></marker>
+  </defs>
+  <rect width="400" height="240" fill="url(#bgDrop)"/>
+  <line x1="20" y1="205" x2="380" y2="205" stroke="#1e293b" stroke-width="2"/>
+  <!-- 矮台阶 -->
+  <rect x="45" y="145" width="75" height="60" rx="3" fill="#334155"/>
+  <!-- 落地瞬间微屈缓冲单腿冻结人物 -->
+  <circle cx="170" cy="68" r="12" fill="#cbd5e1"/>
+  <line x1="170" y1="80" x2="155" y2="128" stroke="#94a3b8" stroke-width="15" stroke-linecap="round"/>
+  <!-- 臀中肌与大腿吸震高亮 -->
+  <ellipse cx="155" cy="128" rx="14" ry="11" fill="#00f59b" opacity="0.9" filter="url(#glowDrop)"/>
+  <!-- 单腿屈膝落地踩实 -->
+  <polyline points="155,128 175,160 168,202" fill="none" stroke="#00f59b" stroke-width="8" stroke-linecap="round" filter="url(#glowDrop)"/>
+  <!-- 悬空未落地腿 -->
+  <polyline points="155,128 140,158 135,175" fill="none" stroke="#64748b" stroke-width="6" stroke-linecap="round"/>
+  <!-- 垂直对线激光线 -->
+  <line x1="175" y1="115" x2="175" y2="205" stroke="#38bdf8" stroke-width="2" stroke-dasharray="3,2"/>
+  <text x="195" y="75" fill="#00f59b" font-size="12" font-weight="black">单脚轻柔落地凝固 2s</text>
+  <text x="195" y="95" fill="#cbd5e1" font-size="10">后坐屈髋吸震 · 膝盖不晃动</text>
+  <text x="195" y="115" fill="#38bdf8" font-size="10">蓝色基准线：膝盖严禁内扣</text>
+</svg>"""
+    },
+
+    # 34. 排球休闲对抗 / 基础传垫 (补全手绘精图)
+    "volleyball_casual": {
+        "title": "排球休闲对抗 / 基础传垫 (Casual Volleyball)",
+        "equipment": "排球 / 排球场地",
+        "target": "下肢低重心移动步伐、手臂传垫控制感、主动有氧恢复",
+        "volleyballFocus": "维持球感与网前脚底移动节奏，兼具关节主动恢复与低冲击热身效果",
+        "breathing": "随跑动和垫球节奏保持轻松连贯呼吸。",
+        "steps": [
+            "双脚略宽于肩，屈膝降低重心、脚跟微抬，保持随时可八方启动的准备姿。",
+            "垫球时双手叠掌包紧，大拇指并拢向下压紧手腕，使两前臂组成平坦宽阔的垫球击球平面。",
+            "迎球时用脚蹬地带动微伸膝向上迎送排球，而非单纯甩动双臂。",
+            "传球时十指自然张开成半球形于额前上方迎击，保持步法到位率先于出手。"
+        ],
+        "mistakes": [
+            "直立站着不动伸手捞球（垫球不稳易飞）。",
+            "垫球时双臂弯曲发力甩肘，击球面不平整。"
+        ],
+        "svg": """<svg viewBox="0 0 400 240" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bgPass" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#0b1120"/><stop offset="100%" stop-color="#0f172a"/></linearGradient>
+    <filter id="glowPass"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  </defs>
+  <rect width="400" height="240" fill="url(#bgPass)"/>
+  <line x1="20" y1="205" x2="380" y2="205" stroke="#1e293b" stroke-width="2"/>
+  <!-- 低重心垫球人物 -->
+  <circle cx="150" cy="85" r="12" fill="#cbd5e1"/>
+  <line x1="150" y1="97" x2="138" y2="145" stroke="#94a3b8" stroke-width="15" stroke-linecap="round"/>
+  <!-- 屈膝低重心下肢 -->
+  <polyline points="138,145 162,165 152,202" fill="none" stroke="#64748b" stroke-width="8" stroke-linecap="round"/>
+  <polyline points="138,145 118,175 112,202" fill="none" stroke="#64748b" stroke-width="8" stroke-linecap="round"/>
+  <!-- 前臂伸直压腕垫球平面高亮 -->
+  <line x1="148" y1="108" x2="195" y2="132" stroke="#00f59b" stroke-width="7" stroke-linecap="round" filter="url(#glowPass)"/>
+  <!-- 排球与抛物线 -->
+  <circle cx="215" cy="70" r="14" fill="#f59e0b" stroke="#38bdf8" stroke-width="2"/>
+  <path d="M 192,126 Q 202,95 212,82" fill="none" stroke="#38bdf8" stroke-width="2.5" stroke-dasharray="4,2"/>
+  <text x="235" y="75" fill="#00f59b" font-size="12" font-weight="black">叠掌压腕平坦垫球面</text>
+  <text x="235" y="95" fill="#cbd5e1" font-size="10">脚蹬地迎送 · 步法先到位</text>
+  <text x="235" y="115" fill="#f59e0b" font-size="10">低重心弹性准备姿</text>
+</svg>"""
+    },
+
+    # 35. 排球扣球弹跳专项打靶测试 (补全手绘精图)
+    "volleyball_spike_session": {
+        "title": "排球扣球弹跳专项打靶测试 (Spike Testing)",
+        "equipment": "排球网 / 标志杆打靶区",
+        "target": "极限助跑摸高、网口鞭打爆破速、落点控制",
+        "volleyballFocus": "将体能房下肢与核心力量完美转化为网前直线/斜线暴力得分杀伤力",
+        "breathing": "三步助跑末尾急停起跳深吸气，最高点下压扣球瞬间强力吐气。",
+        "steps": [
+            "站在 3 米线外做好三步（或四步）助跑准备，精准预判二传出球弧度与高度。",
+            "最后一步制动并蹬地，双臂最大幅度向后摆臂后迅速上摆带飞身体极限高度。",
+            "空中拉弓挺胸，左手指向来球测距，右手引肘在耳后最高点准备鞭打。",
+            "全手掌包满球心后上方下压并甩腕，精准击打目标靶位，双脚轻盈屈髋缓冲落地。"
+        ],
+        "mistakes": [
+            "人比球快冲到网底（球在脑后仰着腰硬扣，肩关节极大损伤）。",
+            "起跳落差过大且疲劳时仍继续反复硬跳，应重质不重量及时止损。"
+        ],
+        "svg": """<svg viewBox="0 0 400 240" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bgSpikeTest" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#0b1120"/><stop offset="100%" stop-color="#0f172a"/></linearGradient>
+    <filter id="glowSpikeTest"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  </defs>
+  <rect width="400" height="240" fill="url(#bgSpikeTest)"/>
+  <line x1="20" y1="205" x2="380" y2="205" stroke="#1e293b" stroke-width="2"/>
+  <!-- 排球网 -->
+  <line x1="220" y1="80" x2="220" y2="205" stroke="#ffffff" stroke-width="3"/>
+  <rect x="218" y="85" width="4" height="50" fill="#f59e0b"/>
+  <!-- 助跑三步轨迹箭头 -->
+  <path d="M 45,198 Q 100,198 125,180 Q 145,115 160,65" fill="none" stroke="#00f59b" stroke-width="2.5" stroke-dasharray="4,2"/>
+  <!-- 最高空扣杀人物 -->
+  <circle cx="155" cy="52" r="11" fill="#cbd5e1"/>
+  <path d="M 152,63 Q 142,88 158,110" fill="none" stroke="#00f59b" stroke-width="12" stroke-linecap="round" filter="url(#glowSpikeTest)"/>
+  <polyline points="152,66 172,46 196,42" fill="none" stroke="#ffffff" stroke-width="5" stroke-linecap="round"/>
+  <polyline points="158,110 146,132 135,126" fill="none" stroke="#64748b" stroke-width="6" stroke-linecap="round"/>
+  <!-- 排球与目标靶心 -->
+  <circle cx="204" cy="40" r="10" fill="#38bdf8" stroke="#f59e0b" stroke-width="2"/>
+  <line x1="208" y1="44" x2="335" y2="178" stroke="#ef4444" stroke-width="2.5" stroke-dasharray="4,2"/>
+  <!-- 地面靶心同心圆 -->
+  <ellipse cx="340" cy="188" rx="22" ry="8" fill="none" stroke="#ef4444" stroke-width="2"/>
+  <ellipse cx="340" cy="188" rx="10" ry="4" fill="#ef4444" opacity="0.8"/>
+  <text x="240" y="55" fill="#00f59b" font-size="12" font-weight="black">极限摸高 · 精确钉地板打靶</text>
+  <text x="240" y="75" fill="#cbd5e1" font-size="10">全掌包球 · 直线/大斜线控点</text>
+</svg>"""
     }
+}
 
 # 读取 exercises.js 里的全部动作并生成完整的 js/exercise_illustrations.js
 with open(r'F:\AntigravityWorkspace\projects\spikefit\js\exercises.js', 'r', encoding='utf-8') as f:
@@ -1207,13 +1637,23 @@ matches = re.findall(pattern, content)
 all_illustrations = {}
 for m in matches:
     ex_id, name, cat, cat_name, eq, muscle, why = m
-    all_illustrations[ex_id] = get_diagram_for(ex_id, name, cat, eq, muscle, why)
+    if ex_id in ILLUSTRATIONS:
+        all_illustrations[ex_id] = ILLUSTRATIONS[ex_id]
+    else:
+        raise ValueError(f"动作 [{ex_id}] ({name}) 缺少专属精细 SVG 教学图解定义！")
 
-# 输出为 JS 文件
-js_code = "/**\n * SpikeFit - 全套动作教学示意图与生物力学要领库\n * 涵盖全部 30 个专项动作的纯矢量无损 SVG 示意图、动作标准拆解与避坑指南\n */\n"
+# 输出为 JS 文件（包含别名映射兼容，确保所有历史或变体ID都能秒级调出正确图解）
+js_code = "/**\n * SpikeFit - 全套动作教学示意图与生物力学要领库\n * 涵盖全部 " + str(len(all_illustrations)) + " 个专项动作的纯矢量无损 SVG 示意图、动作标准拆解与避坑指南\n */\n"
 js_code += "const EXERCISE_ILLUSTRATIONS = " + json.dumps(all_illustrations, ensure_ascii=False, indent=2) + ";\n\n"
-js_code += """function getExerciseIllustration(exerciseId) {
-  return EXERCISE_ILLUSTRATIONS[exerciseId] || null;
+js_code += """const ILLUSTRATION_ALIASES = {
+  'hanging_knee_raise_twist': 'hanging_knee_twist',
+  'seated_cable_row': 'cable_seated_row'
+};
+
+function getExerciseIllustration(exerciseId) {
+  if (!exerciseId) return null;
+  const resolvedId = ILLUSTRATION_ALIASES[exerciseId] || exerciseId;
+  return EXERCISE_ILLUSTRATIONS[resolvedId] || null;
 }
 
 if (typeof module !== 'undefined' && module.exports) {
@@ -1224,4 +1664,4 @@ if (typeof module !== 'undefined' && module.exports) {
 with open(r'F:\AntigravityWorkspace\projects\spikefit\js\exercise_illustrations.js', 'w', encoding='utf-8') as f:
     f.write(js_code)
 
-print(f"成功为全部 {len(all_illustrations)} 个动作生成教学示意图与要领库！")
+print(f"成功为全部 {len(all_illustrations)} 个动作生成专属精细教学示意图与要领库！（0兜底、全覆盖）")

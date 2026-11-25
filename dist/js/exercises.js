@@ -176,6 +176,20 @@ const EXERCISE_DATABASE = [
     met: 3.5,
     tips: '双手执轻弹力带，依次做出 Y 字上举、T 字侧拉、W 字屈肘后夹、L 字外旋。'
   },
+  {
+    id: 'prone_ytw_raises',
+    name: '俯卧/俯身 Y-T-W 肩胛与肩袖激活',
+    category: 'shoulder',
+    categoryName: '肩部立体推力',
+    equipment: '瑜伽垫/极轻哑铃',
+    targetMuscle: '下斜方肌、菱形肌、肩袖外旋肌群',
+    whyForVolleyball: '【赛前护肩微激活】彻底避开背阔肌大负荷，精准唤醒肩袖深层稳定肌，让扣球挥臂更顺滑',
+    defaultSets: 3,
+    defaultReps: 8,
+    defaultWeight: 1,
+    met: 3.0,
+    tips: '大拇指朝上，依次做 Y 字、T 字、W 字上抬，顶峰停顿 1 秒夹紧肩胛骨，绝不用大重量。'
+  },
 
   // ===================== 下肢力量 (LEGS) =====================
   {
@@ -248,6 +262,48 @@ const EXERCISE_DATABASE = [
     met: 3.5,
     tips: '背靠墙站立双腿向前跨出半步，脚跟着地，尽可能用力将脚尖向上勾起，停顿 1 秒。'
   },
+  {
+    id: 'wall_sit_isometric',
+    name: '靠墙静蹲/西班牙深蹲等长收缩',
+    category: 'legs',
+    categoryName: '下肢基石力量',
+    equipment: '墙壁/弹力带',
+    targetMuscle: '股四头肌等长收缩、髌腱',
+    whyForVolleyball: '【排球髌腱赛前镇痛金标准】45秒等长收缩可激活中枢镇痛机制，快速压制膝盖不适且零摩擦',
+    defaultSets: 3,
+    defaultReps: 45,
+    defaultWeight: 0,
+    met: 3.5,
+    tips: '大腿与小腿呈 80°-90°，膝盖对准脚尖不内扣，背部贴实墙面保持平静深呼吸。'
+  },
+  {
+    id: 'miniband_lateral_walk',
+    name: '弹力带怪兽侧步走 (Monster Walk)',
+    category: 'legs',
+    categoryName: '下肢基石力量',
+    equipment: '环状迷你弹力带',
+    targetMuscle: '臀中肌、阔筋膜张肌',
+    whyForVolleyball: '【锁死膝盖防内扣】强力激活臀中肌，防止起跳和单脚落地膝盖内扣扭伤十字韧带',
+    defaultSets: 3,
+    defaultReps: 12,
+    defaultWeight: 0,
+    met: 4.0,
+    tips: '弹力带套在膝盖上方，微屈髋半蹲，平稳向侧方跨步，膝盖全程撑开抗内扣。'
+  },
+  {
+    id: 'single_leg_rdl',
+    name: '轻量单腿罗马尼亚硬拉 (Single-Leg RDL)',
+    category: 'legs',
+    categoryName: '下肢基石力量',
+    equipment: '自重/轻哑铃',
+    targetMuscle: '臀大肌、腘绳肌、足踝本体感觉',
+    whyForVolleyball: '【单脚落地吸震平衡】纯屈髋激活后链与足踝稳定神经，让臀部接管落地冲击力解放膝盖',
+    defaultSets: 3,
+    defaultReps: 8,
+    defaultWeight: 4,
+    met: 4.5,
+    tips: '支撑腿微屈膝锁定，后腿向后直伸与躯干成一直线水平俯身，臀部发力拉回。'
+  },
 
   // ===================== 扣球核心专项 (SPIKING CORE) =====================
   {
@@ -319,6 +375,20 @@ const EXERCISE_DATABASE = [
     defaultWeight: 10,
     met: 5.0,
     tips: '双膝跪地，双手握杠铃杆向前推出至身体接近平直，核心收紧不塌腰，靠腹肌力量拉回。'
+  },
+  {
+    id: 'deadbug_core',
+    name: '仰卧死虫子核心激活 (Deadbug)',
+    category: 'volleyball_core',
+    categoryName: '扣球核心爆发力',
+    equipment: '瑜伽垫/自重',
+    targetMuscle: '腹横肌、深层核心稳定肌群',
+    whyForVolleyball: '【扣球核心刚度】激活深层腹横肌保护腰椎，增强空中击球躯干稳定性且零下肢疲劳',
+    defaultSets: 2,
+    defaultReps: 12,
+    defaultWeight: 0,
+    met: 3.5,
+    tips: '下背部全程紧贴地面不可起翘悬空，对侧手脚缓慢对角下落伸展，呼气拉回。'
   },
 
   // ===================== 垂直弹跳专项 (VERTICAL JUMP) =====================
